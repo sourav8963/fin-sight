@@ -51,6 +51,17 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
   input, select, textarea, button { font-family: inherit; }
+
+  /* Disable ugly native focus rings on click (especially from Recharts containers) */
+  *:focus {
+    outline: none !important;
+  }
+
+  /* Prevent text selection and typing caret loops within charts */
+  .recharts-wrapper, .recharts-surface {
+    user-select: none;
+    -webkit-user-select: none;
+  }
 }
 
 @layer utilities {

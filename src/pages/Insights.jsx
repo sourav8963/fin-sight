@@ -152,7 +152,7 @@ export default function Insights() {
           WebkitBackdropFilter: 'blur(16px)',
         }}
       >
-        <div className="mb-5">
+        <div className="mb-5 select-none cursor-default">
           <h2 className="text-sm font-semibold text-theme">Net Savings per Month</h2>
           <p className="text-xs text-muted mt-0.5">How much you saved or lost each month</p>
         </div>

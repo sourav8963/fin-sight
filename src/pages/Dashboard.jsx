@@ -230,7 +230,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Monthly balance trend — takes 3 cols */}
         <div className="lg:col-span-3 bg-surface border border-theme rounded-xl p-5 slide-up stagger-4">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-5 select-none cursor-default">
             <div>
               <h2 className="text-sm font-semibold text-theme tracking-tight">Balance Trend</h2>
               <p className="text-xs text-muted mt-0.5">Income vs expenses over time</p>
@@ -329,7 +329,7 @@ export default function Dashboard() {
             WebkitBackdropFilter: 'blur(16px)',
           }}
         >
-          <div className="mb-5">
+          <div className="mb-5 select-none text-cursor-default cursor-default">
             <h2 className="text-sm font-semibold text-theme tracking-tight">Monthly Comparison</h2>
             <p className="text-xs text-muted mt-0.5">Income vs expenses per month</p>
           </div>

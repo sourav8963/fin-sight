@@ -44,11 +44,8 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-5 border-b border-theme">
         <div className="flex items-center gap-2">
-          <div
-            className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold"
-            style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}
-          >
-            F
+          <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-theme bg-surface-2 shrink-0">
+            <img src="/logo.png" alt="FinSight Logo" className="w-full h-full object-cover" />
           </div>
           <span className="font-semibold tracking-tight text-theme text-sm">Finsight</span>
         </div>
