@@ -121,8 +121,22 @@ function formatMonthLabel(ym) {
   return `${months[parseInt(m) - 1]} '${y.slice(2)}`;
 }
 
-export function formatCurrency(n) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+export const CURRENCIES = {
+  USD: { rate: 1, locale: 'en-US', symbol: 'USD', char: '$' },
+  INR: { rate: 83.2, locale: 'en-IN', symbol: 'INR', char: '₹' },
+  EUR: { rate: 0.92, locale: 'de-DE', symbol: 'EUR', char: '€' },
+  JPY: { rate: 151.5, locale: 'ja-JP', symbol: 'JPY', char: '¥' },
+  CNY: { rate: 7.23, locale: 'zh-CN', symbol: 'CNY', char: '¥' },
+};
+
+export function formatCurrency(n, currencyCode = 'INR') {
+  const cur = CURRENCIES[currencyCode] || CURRENCIES.INR;
+  const converted = n * cur.rate;
+  return new Intl.NumberFormat(cur.locale, {
+    style: 'currency',
+    currency: cur.symbol,
+    maximumFractionDigits: currencyCode === 'JPY' ? 0 : 0,
+  }).format(converted);
 }
 
 export function generateId() {

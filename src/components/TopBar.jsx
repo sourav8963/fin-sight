@@ -7,8 +7,11 @@ export default function TopBar() {
   const toggleDarkMode = useStore((s) => s.toggleDarkMode);
   const activePage = useStore((s) => s.activePage);
   const openModal = useStore((s) => s.openModal);
+  const currency = useStore((s) => s.currency);
+  const setCurrency = useStore((s) => s.setCurrency);
 
   const pageLabels = { dashboard: 'Overview', transactions: 'Transactions', insights: 'Insights' };
+  const currencies = ['INR', 'USD', 'EUR', 'JPY', 'CNY'];
 
   return (
     <header
@@ -21,9 +24,21 @@ export default function TopBar() {
       </h1>
 
       <div className="flex items-center gap-2">
+        {/* Currency switcher */}
+        <select
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          className="text-xs font-semibold uppercase tracking-wider rounded-lg border border-theme p-1.5 cursor-pointer outline-none transition-all appearance-none text-center"
+          style={{ backgroundColor: 'var(--surface-2)', color: 'var(--theme)' }}
+        >
+          {currencies.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+
         {/* Role switcher */}
         <div
-          className="flex items-center gap-1 rounded-lg border border-theme p-1"
+          className="hidden sm:flex items-center gap-1 rounded-lg border border-theme p-1"
           style={{ backgroundColor: 'var(--surface-2)' }}
         >
           {['viewer', 'admin'].map((r) => (
