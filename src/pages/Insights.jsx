@@ -3,20 +3,20 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
 import { useStore } from '../store/useStore';
-import { getMonthlyData, getCategoryData, formatCurrency } from '../data/mockData';
+import { getMonthlyData, getCategoryData, formatCurrency, CURRENCIES } from '../data/mockData';
 
 const CATEGORY_COLORS = [
   '#c1440e', '#e07a5f', '#f4a261', '#e9c46a',
   '#2d6a4f', '#52b788', '#74c69d', '#95d5b2',
 ];
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label, currency }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-surface border border-theme rounded-lg px-3 py-2 shadow-lg text-xs">
       <p className="text-muted mb-1">{label}</p>
       {payload.map((p) => (
-        <div key={p.dataKey} className="mono text-theme">{formatCurrency(p.value)}</div>
+        <div key={p.dataKey} className="mono text-theme">{formatCurrency(p.value, currency)}</div>
       ))}
     </div>
   );
@@ -58,6 +58,7 @@ const GlassCursor = ({ x, y, width, height, darkMode }) => {
 export default function Insights() {
   const transactions = useStore((s) => s.transactions);
   const darkMode = useStore((s) => s.darkMode);
+  const currency = useStore((s) => s.currency);
 
   const monthlyData = useMemo(() => getMonthlyData(transactions), [transactions]);
   const categoryData = useMemo(() => getCategoryData(transactions), [transactions]);
@@ -125,18 +126,18 @@ export default function Insights() {
         <InsightTile
           label="Top Expense"
           value={stats.topCat.name}
-          sub={formatCurrency(stats.topCat.value)}
+          sub={formatCurrency(stats.topCat.value, currency)}
           neutral
         />
         <InsightTile
           label="Avg Monthly Expense"
-          value={formatCurrency(stats.avgMonthlyExpense)}
+          value={formatCurrency(stats.avgMonthlyExpense, currency)}
           sub="per month"
           neutral
         />
         <InsightTile
           label="Avg Monthly Income"
-          value={formatCurrency(stats.avgMonthlyIncome)}
+          value={formatCurrency(stats.avgMonthlyIncome, currency)}
           sub="per month"
           good={true}
         />
@@ -156,12 +157,17 @@ export default function Insights() {
           <p className="text-xs text-muted mt-0.5">How much you saved or lost each month</p>
         </div>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={stats.savingsTrend} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+          <BarChart data={stats.savingsTrend} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
             <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: textColor }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: textColor }} axisLine={false} tickLine={false}
-              tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`} />
-            <Tooltip content={<CustomTooltip />} cursor={<GlassCursor darkMode={darkMode} />} />
+            <YAxis tick={{ fontSize: 11, fill: textColor }} axisLine={false} tickLine={false} width={45}
+              tickFormatter={(v) => {
+                const rate = CURRENCIES[currency]?.rate || 1;
+                const sym = CURRENCIES[currency]?.char || '$';
+                const converted = v * rate;
+                return `${sym}${(converted / 1000).toFixed(0)}k`;
+              }} />
+            <Tooltip content={<CustomTooltip currency={currency} />} cursor={<GlassCursor darkMode={darkMode} />} />
             <Bar dataKey="savings" radius={[4, 4, 0, 0]} maxBarSize={36}>
               {stats.savingsTrend.map((entry, i) => (
                 <Cell key={i} fill={entry.savings >= 0 ? 'var(--income)' : 'var(--expense)'} />
@@ -181,7 +187,7 @@ export default function Insights() {
               <div key={c.name}>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="text-theme font-medium">{c.name}</span>
-                  <span className="mono text-muted">{formatCurrency(c.value)} · {c.pct.toFixed(1)}%</span>
+                  <span className="mono text-muted">{formatCurrency(c.value, currency)} · {c.pct.toFixed(1)}%</span>
                 </div>
                 <div className="h-1.5 rounded-full" style={{ backgroundColor: 'var(--surface-2)' }}>
                   <div
@@ -232,7 +238,7 @@ export default function Insights() {
                 <ObservationRow
                   icon="⚡"
                   label="Biggest single expense"
-                  value={`${stats.biggestExpense.note} — ${formatCurrency(stats.biggestExpense.amount)}`}
+                  value={`${stats.biggestExpense.note} — ${formatCurrency(stats.biggestExpense.amount, currency)}`}
                   type="expense"
                 />
               )}
@@ -240,7 +246,7 @@ export default function Insights() {
                 <ObservationRow
                   icon="✦"
                   label="Biggest income received"
-                  value={`${stats.biggestIncome.note} — ${formatCurrency(stats.biggestIncome.amount)}`}
+                  value={`${stats.biggestIncome.note} — ${formatCurrency(stats.biggestIncome.amount, currency)}`}
                   type="income"
                 />
               )}

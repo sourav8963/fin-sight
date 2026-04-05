@@ -4,7 +4,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { useStore } from '../store/useStore';
-import { getMonthlyData, getCategoryData, formatCurrency } from '../data/mockData';
+import { getMonthlyData, getCategoryData, formatCurrency, CURRENCIES } from '../data/mockData';
 import SummaryCard from '../components/SummaryCard';
 
 const CATEGORY_COLORS = [
@@ -26,7 +26,7 @@ const CATEGORY_ICONS = {
   Other: '📦',
 };
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label, currency }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-surface border border-theme rounded-lg px-3 py-2.5 shadow-lg text-xs">
@@ -34,7 +34,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       {payload.map((p) => (
         <div key={p.dataKey} className="flex items-center gap-2 mb-0.5">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-          <span className="text-theme mono">{formatCurrency(p.value)}</span>
+          <span className="text-theme mono">{formatCurrency(p.value, currency)}</span>
           <span className="text-muted capitalize">{p.dataKey}</span>
         </div>
       ))}
@@ -47,7 +47,7 @@ const RADIAN = Math.PI / 180;
 const renderActiveShape = (props) => {
   const {
     cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle,
-    fill, payload, value,
+    fill, payload, value, currency
   } = props;
 
   const expandedOuter = outerRadius + 6;
@@ -101,7 +101,7 @@ const renderActiveShape = (props) => {
         fontSize={11}
         fontFamily="'JetBrains Mono', monospace"
       >
-        {formatCurrency(value)}
+        {formatCurrency(value, currency)}
       </text>
     </g>
   );
@@ -145,6 +145,7 @@ const GlassCursor = ({ x, y, width, height, darkMode }) => {
 export default function Dashboard() {
   const transactions = useStore((s) => s.transactions);
   const darkMode = useStore((s) => s.darkMode);
+  const currency = useStore((s) => s.currency);
   const [activePieIndex, setActivePieIndex] = useState(null);
 
   const onPieEnter = useCallback((_, index) => {
@@ -244,7 +245,7 @@ export default function Dashboard() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={monthlyData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+            <AreaChart data={monthlyData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--income)" stopOpacity={0.2} />
@@ -257,9 +258,14 @@ export default function Dashboard() {
               </defs>
               <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: textColor }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: textColor }} axisLine={false} tickLine={false}
-                tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip content={<CustomTooltip />} />
+              <YAxis tick={{ fontSize: 11, fill: textColor }} axisLine={false} tickLine={false} width={45}
+                tickFormatter={(v) => {
+                  const rate = CURRENCIES[currency]?.rate || 1;
+                  const sym = CURRENCIES[currency]?.char || '$';
+                  const converted = v * rate;
+                  return `${sym}${(converted / 1000).toFixed(0)}k`;
+                }} />
+              <Tooltip content={<CustomTooltip currency={currency} />} />
               <Area type="monotone" dataKey="income" stroke="var(--income)" strokeWidth={2}
                 fill="url(#incomeGrad)" dot={false} activeDot={{ r: 4, fill: 'var(--income)' }} />
               <Area type="monotone" dataKey="expenses" stroke="var(--expense)" strokeWidth={2}
@@ -286,7 +292,7 @@ export default function Dashboard() {
                 dataKey="value"
                 strokeWidth={0}
                 activeIndex={activePieIndex}
-                activeShape={renderActiveShape}
+                activeShape={(props) => renderActiveShape({ ...props, currency })}
                 onMouseEnter={onPieEnter}
                 onMouseLeave={onPieLeave}
               >
@@ -305,7 +311,7 @@ export default function Dashboard() {
                     style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
                   <span className="text-muted">{d.name}</span>
                 </div>
-                <span className="mono text-theme">{formatCurrency(d.value)}</span>
+                <span className="mono text-theme">{formatCurrency(d.value, currency)}</span>
               </div>
             ))}
           </div>
@@ -328,12 +334,17 @@ export default function Dashboard() {
             <p className="text-xs text-muted mt-0.5">Income vs expenses per month</p>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={monthlyData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }} barGap={4}>
+            <BarChart data={monthlyData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barGap={4}>
               <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: textColor }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: textColor }} axisLine={false} tickLine={false}
-                tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip content={<CustomTooltip />} cursor={<GlassCursor darkMode={darkMode} />} />
+              <YAxis tick={{ fontSize: 11, fill: textColor }} axisLine={false} tickLine={false} width={45}
+                tickFormatter={(v) => {
+                  const rate = CURRENCIES[currency]?.rate || 1;
+                  const sym = CURRENCIES[currency]?.char || '$';
+                  const converted = v * rate;
+                  return `${sym}${(converted / 1000).toFixed(0)}k`;
+                }} />
+              <Tooltip content={<CustomTooltip currency={currency} />} cursor={<GlassCursor darkMode={darkMode} />} />
               <Bar dataKey="income" fill="var(--income)" radius={[4, 4, 0, 0]} maxBarSize={28} />
               <Bar dataKey="expenses" fill="var(--expense)" radius={[4, 4, 0, 0]} maxBarSize={28} />
             </BarChart>
@@ -371,7 +382,7 @@ export default function Dashboard() {
                 </div>
                 <span className={`text-xs font-semibold mono shrink-0 ml-2
                   ${tx.type === 'income' ? 'text-income' : 'text-expense'}`}>
-                  {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                  {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, currency)}
                 </span>
               </div>
             ))}
