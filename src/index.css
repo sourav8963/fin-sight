@@ -42,7 +42,14 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  body { margin: 0; min-height: 100vh; background-color: var(--bg); }
+  body { 
+    margin: 0; 
+    min-height: 100vh; 
+    background-color: var(--bg); 
+    user-select: none; 
+    -webkit-user-select: none;
+    cursor: default;
+  }
 
   #root { min-height: 100vh; }
 
@@ -50,7 +57,16 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
-  input, select, textarea, button { font-family: inherit; }
+  input, select, textarea { 
+    font-family: inherit; 
+    user-select: auto;
+    -webkit-user-select: auto;
+    cursor: text;
+  }
+  
+  button {
+    font-family: inherit;
+  }
 
   /* Disable ugly native focus rings on click (especially from Recharts containers) */
   *:focus {
