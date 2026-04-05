@@ -12,6 +12,20 @@ const CATEGORY_COLORS = [
   '#2d6a4f', '#52b788', '#74c69d', '#95d5b2',
 ];
 
+const CATEGORY_ICONS = {
+  Salary: '💰',
+  Freelance: '💻',
+  Investment: '📈',
+  Rent: '🏠',
+  Food: '🍕',
+  Transport: '🚌',
+  Utilities: '⚡',
+  Health: '💊',
+  Entertainment: '🎮',
+  Shopping: '🛍️',
+  Other: '📦',
+};
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -348,7 +362,7 @@ export default function Dashboard() {
                     className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0
                       ${tx.type === 'income' ? 'bg-income text-income' : 'bg-expense text-expense'}`}
                   >
-                    {tx.type === 'income' ? '↑' : '↓'}
+                    {CATEGORY_ICONS[tx.category] || '📋'}
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-theme truncate">{tx.note}</p>

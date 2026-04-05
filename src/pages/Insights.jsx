@@ -22,6 +22,39 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
+const GlassCursor = ({ x, y, width, height, darkMode }) => {
+  if (!width || !height) return null;
+  const pad = 6;
+  const rx = x - pad;
+  const ry = y - 2;
+  const rw = width + pad * 2;
+  const rh = height + 4;
+  const fillColor = darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.45)';
+  const strokeColor = darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.6)';
+  const filterId = 'glass-blur-insights';
+
+  return (
+    <g>
+      <defs>
+        <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="6" />
+        </filter>
+      </defs>
+      <rect
+        x={rx} y={ry} width={rw} height={rh} rx={8}
+        fill={fillColor}
+        filter={`url(#${filterId})`}
+      />
+      <rect
+        x={rx} y={ry} width={rw} height={rh} rx={8}
+        fill={fillColor}
+        stroke={strokeColor}
+        strokeWidth={1}
+      />
+    </g>
+  );
+};
+
 export default function Insights() {
   const transactions = useStore((s) => s.transactions);
   const darkMode = useStore((s) => s.darkMode);
@@ -110,7 +143,14 @@ export default function Insights() {
       </div>
 
       {/* Net savings trend */}
-      <div className="bg-surface border border-theme rounded-xl p-5">
+      <div
+        className="border border-theme rounded-xl p-5"
+        style={{
+          backgroundColor: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.55)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+        }}
+      >
         <div className="mb-5">
           <h2 className="text-sm font-semibold text-theme">Net Savings per Month</h2>
           <p className="text-xs text-muted mt-0.5">How much you saved or lost each month</p>
@@ -121,7 +161,7 @@ export default function Insights() {
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: textColor }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 11, fill: textColor }} axisLine={false} tickLine={false}
               tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`} />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} cursor={<GlassCursor darkMode={darkMode} />} />
             <Bar dataKey="savings" radius={[4, 4, 0, 0]} maxBarSize={36}>
               {stats.savingsTrend.map((entry, i) => (
                 <Cell key={i} fill={entry.savings >= 0 ? 'var(--income)' : 'var(--expense)'} />

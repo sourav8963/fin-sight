@@ -2,6 +2,20 @@ import { useMemo, useState } from 'react';
 import { useStore } from '../store/useStore';
 import { CATEGORIES, formatCurrency } from '../data/mockData';
 
+const CATEGORY_ICONS = {
+  Salary: '💰',
+  Freelance: '💻',
+  Investment: '📈',
+  Rent: '🏠',
+  Food: '🍕',
+  Transport: '🚌',
+  Utilities: '⚡',
+  Health: '💊',
+  Entertainment: '🎮',
+  Shopping: '🛍️',
+  Other: '📦',
+};
+
 export default function Transactions() {
   const transactions = useStore((s) => s.transactions);
   const filters = useStore((s) => s.filters);
@@ -184,25 +198,26 @@ export default function Transactions() {
           {/* Desktop table — hidden on mobile */}
           <div className="hidden sm:block bg-surface border border-theme rounded-xl overflow-hidden">
             <div
-              className="grid text-[10px] font-semibold tracking-widest text-muted uppercase px-5 py-3 border-b border-theme"
-              style={{ gridTemplateColumns: role === 'admin' ? '1fr 100px 110px 80px auto' : '1fr 100px 110px 80px' }}
+              className="grid items-center text-[10px] font-semibold tracking-widest text-muted uppercase px-6 py-3.5 border-b border-theme"
+              style={{ gridTemplateColumns: role === 'admin' ? '1.4fr 110px 120px 100px 100px' : '1.4fr 110px 120px 100px' }}
             >
               <span>Transaction</span>
-              <button className="flex items-center gap-1 hover:text-theme transition-colors" onClick={() => toggleSort('date')}>
+              <button className="flex items-center gap-1 justify-center hover:text-theme transition-colors" onClick={() => toggleSort('date')}>
                 Date <SortIcon active={filters.sortBy === 'date'} dir={filters.sortDir} />
               </button>
-              <button className="flex items-center gap-1 hover:text-theme transition-colors text-right justify-end" onClick={() => toggleSort('amount')}>
+              <button className="flex items-center gap-1 justify-center hover:text-theme transition-colors" onClick={() => toggleSort('amount')}>
                 Amount <SortIcon active={filters.sortBy === 'amount'} dir={filters.sortDir} />
               </button>
-              <span>Type</span>
-              {role === 'admin' && <span className="text-right">Actions</span>}
+              <span className="text-center">Type</span>
+              {role === 'admin' && <span className="text-center">Actions</span>}
             </div>
-            <div className="divide-y divide-theme">
-              {filtered.map((tx) => (
+            <div>
+              {filtered.map((tx, i) => (
                 <DesktopRow
                   key={tx.id}
                   tx={tx}
                   role={role}
+                  even={i % 2 === 0}
                   onEdit={() => openModal('edit', tx)}
                   onDelete={() => handleDelete(tx.id)}
                   confirmDelete={deleteConfirm === tx.id}
@@ -241,37 +256,61 @@ function SortIcon({ active, dir }) {
   );
 }
 
-function DesktopRow({ tx, role, onEdit, onDelete, confirmDelete }) {
+function DesktopRow({ tx, role, even, onEdit, onDelete, confirmDelete }) {
+  const isIncome = tx.type === 'income';
   return (
     <div
-      className="grid items-center px-5 py-3.5 hover:bg-surface-2 transition-colors"
-      style={{ gridTemplateColumns: role === 'admin' ? '1fr 100px 110px 80px auto' : '1fr 100px 110px 80px' }}
+      className="grid items-center px-6 py-3 transition-all duration-200 group"
+      style={{
+        gridTemplateColumns: role === 'admin' ? '1.4fr 110px 120px 100px 100px' : '1.4fr 110px 120px 100px',
+        backgroundColor: even ? 'transparent' : 'var(--surface-2)',
+        borderLeft: '3px solid transparent',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderLeftColor = isIncome ? 'var(--income)' : 'var(--expense)';
+        e.currentTarget.style.backgroundColor = 'var(--surface-2)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderLeftColor = 'transparent';
+        e.currentTarget.style.backgroundColor = even ? 'transparent' : 'var(--surface-2)';
+      }}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs shrink-0 font-bold
-          ${tx.type === 'income' ? 'bg-income text-income' : 'bg-expense text-expense'}`}>
-          {tx.category.slice(0, 2)}
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0
+          ${isIncome ? 'bg-income text-income' : 'bg-expense text-expense'}`}
+          style={{ fontSize: '16px' }}
+        >
+          {CATEGORY_ICONS[tx.category] || '📋'}
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-medium text-theme truncate">{tx.note}</p>
-          <p className="text-[10px] text-muted">{tx.category}</p>
+          <p className="text-xs font-semibold text-theme truncate">{tx.note}</p>
+          <p className="text-[10px] text-muted mt-0.5">{tx.category}</p>
         </div>
       </div>
-      <p className="text-xs text-muted mono">{tx.date}</p>
-      <p className={`text-xs font-semibold mono text-right ${tx.type === 'income' ? 'text-income' : 'text-expense'}`}>
-        {tx.type === 'income' ? '+' : '−'}{formatCurrency(tx.amount)}
+      <p className="text-[11px] text-muted mono text-center">{tx.date}</p>
+      <p className={`text-xs font-bold mono text-center ${isIncome ? 'text-income' : 'text-expense'}`}>
+        {isIncome ? '+' : '−'}{formatCurrency(tx.amount)}
       </p>
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider w-fit
-        ${tx.type === 'income' ? 'bg-income text-income' : 'bg-expense text-expense'}`}>
-        {tx.type}
-      </span>
+      <div className="flex justify-center">
+        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider
+          ${isIncome ? 'bg-income text-income' : 'bg-expense text-expense'}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${isIncome ? 'bg-current' : 'bg-current'}`}
+            style={{ opacity: 0.8 }} />
+          {tx.type}
+        </span>
+      </div>
       {role === 'admin' && (
-        <div className="flex items-center gap-1.5 justify-end">
-          <button onClick={onEdit} className="px-2 py-1 text-[10px] rounded border border-theme text-muted hover:text-theme transition-colors">Edit</button>
+        <div className="flex items-center gap-1.5 justify-center opacity-40 group-hover:opacity-100 transition-opacity">
           <button onClick={onDelete}
-            className={`px-2 py-1 text-[10px] rounded border transition-colors
-              ${confirmDelete ? 'border-expense bg-expense text-expense' : 'border-theme text-muted hover:text-expense hover:border-expense'}`}>
-            {confirmDelete ? 'Sure?' : 'Del'}
+            className={`px-2 py-1 text-base rounded-lg border transition-all leading-none flex items-center
+              ${confirmDelete ? 'border-expense bg-expense text-expense font-bold text-xs' : 'border-theme text-theme hover:text-expense hover:border-expense bg-surface-2 opacity-90 hover:opacity-100'}`}
+            title="Delete"
+          >{confirmDelete ? 'Sure?' : '🗑'}</button>
+          <button onClick={onEdit}
+            className="px-2 py-1 text-base rounded-lg border border-theme text-muted hover:text-theme hover:border-accent transition-all leading-none flex items-center"
+            title="Edit"
+          >
+            <span className="inline-block transform -scale-x-100">✎</span>
           </button>
         </div>
       )}
@@ -287,7 +326,7 @@ function MobileCard({ tx, role, onEdit, onDelete, confirmDelete }) {
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs shrink-0 font-bold
             ${tx.type === 'income' ? 'bg-income text-income' : 'bg-expense text-expense'}`}>
-            {tx.category.slice(0, 2)}
+            {CATEGORY_ICONS[tx.category] || '📋'}
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-theme truncate">{tx.note}</p>
@@ -312,11 +351,18 @@ function MobileCard({ tx, role, onEdit, onDelete, confirmDelete }) {
         <p className="text-[11px] text-muted mono">{tx.date}</p>
         {role === 'admin' && (
           <div className="flex items-center gap-1.5">
-            <button onClick={onEdit} className="px-2.5 py-1 text-[11px] rounded border border-theme text-muted hover:text-theme transition-colors">Edit</button>
             <button onClick={onDelete}
-              className={`px-2.5 py-1 text-[11px] rounded border transition-colors
-                ${confirmDelete ? 'border-expense bg-expense text-expense' : 'border-theme text-muted hover:text-expense hover:border-expense'}`}>
-              {confirmDelete ? 'Sure?' : 'Delete'}
+              className={`px-2.5 py-1 text-base rounded border transition-colors leading-none flex items-center
+                ${confirmDelete ? 'border-expense bg-expense text-expense text-xs font-bold' : 'border-theme text-theme hover:text-expense hover:border-expense bg-surface-2 opacity-90 hover:opacity-100'}`}
+              title="Delete"
+            >
+              {confirmDelete ? 'Sure?' : '🗑'}
+            </button>
+            <button onClick={onEdit} 
+              className="px-2.5 py-1 text-base rounded border border-theme text-muted hover:text-theme transition-colors leading-none flex items-center"
+              title="Edit"
+            >
+              <span className="inline-block transform -scale-x-100">✎</span>
             </button>
           </div>
         )}
