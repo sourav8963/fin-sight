@@ -12,6 +12,10 @@ export const useStore = create(
       role: 'viewer', // 'viewer' | 'admin'
       setRole: (role) => set({ role }),
 
+      // Currency
+      currency: 'INR',
+      setCurrency: (currency) => set({ currency }),
+
       // Theme
       darkMode: false,
       toggleDarkMode: () => {
@@ -58,6 +62,7 @@ export const useStore = create(
         transactions: s.transactions,
         darkMode: s.darkMode,
         role: s.role,
+        currency: s.currency,
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.darkMode) {

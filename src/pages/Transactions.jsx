@@ -23,6 +23,7 @@ export default function Transactions() {
   const resetFilters = useStore((s) => s.resetFilters);
   const role = useStore((s) => s.role);
   const openModal = useStore((s) => s.openModal);
+  const currency = useStore((s) => s.currency);
   const deleteTransaction = useStore((s) => s.deleteTransaction);
 
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -218,6 +219,7 @@ export default function Transactions() {
                   tx={tx}
                   role={role}
                   even={i % 2 === 0}
+                  currency={currency}
                   onEdit={() => openModal('edit', tx)}
                   onDelete={() => handleDelete(tx.id)}
                   confirmDelete={deleteConfirm === tx.id}
@@ -233,6 +235,7 @@ export default function Transactions() {
                 key={tx.id}
                 tx={tx}
                 role={role}
+                currency={currency}
                 onEdit={() => openModal('edit', tx)}
                 onDelete={() => handleDelete(tx.id)}
                 confirmDelete={deleteConfirm === tx.id}
@@ -256,7 +259,7 @@ function SortIcon({ active, dir }) {
   );
 }
 
-function DesktopRow({ tx, role, even, onEdit, onDelete, confirmDelete }) {
+function DesktopRow({ tx, role, even, currency, onEdit, onDelete, confirmDelete }) {
   const isIncome = tx.type === 'income';
   return (
     <div
@@ -289,7 +292,7 @@ function DesktopRow({ tx, role, even, onEdit, onDelete, confirmDelete }) {
       </div>
       <p className="text-[11px] text-muted mono text-center">{tx.date}</p>
       <p className={`text-xs font-bold mono text-center ${isIncome ? 'text-income' : 'text-expense'}`}>
-        {isIncome ? '+' : '−'}{formatCurrency(tx.amount)}
+        {isIncome ? '+' : '−'}{formatCurrency(tx.amount, currency)}
       </p>
       <div className="flex justify-center">
         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider
@@ -318,7 +321,7 @@ function DesktopRow({ tx, role, even, onEdit, onDelete, confirmDelete }) {
   );
 }
 
-function MobileCard({ tx, role, onEdit, onDelete, confirmDelete }) {
+function MobileCard({ tx, role, currency, onEdit, onDelete, confirmDelete }) {
   return (
     <div className="bg-surface border border-theme rounded-xl p-4">
       <div className="flex items-start justify-between gap-3">
@@ -337,7 +340,7 @@ function MobileCard({ tx, role, onEdit, onDelete, confirmDelete }) {
         {/* Right: amount */}
         <div className="text-right shrink-0">
           <p className={`text-sm font-bold mono ${tx.type === 'income' ? 'text-income' : 'text-expense'}`}>
-            {tx.type === 'income' ? '+' : '−'}{formatCurrency(tx.amount)}
+            {tx.type === 'income' ? '+' : '−'}{formatCurrency(tx.amount, currency)}
           </p>
           <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider mt-0.5
             ${tx.type === 'income' ? 'bg-income text-income' : 'bg-expense text-expense'}`}>

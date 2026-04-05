@@ -1,6 +1,8 @@
 import { formatCurrency } from '../data/mockData';
+import { useStore } from '../store/useStore';
 
 export default function SummaryCard({ label, value, delta, type, icon }) {
+  const currency = useStore((s) => s.currency);
   const isPositive = delta >= 0;
   const colorClass =
     type === 'income' ? 'text-income' :
@@ -25,7 +27,7 @@ export default function SummaryCard({ label, value, delta, type, icon }) {
 
       {/* Value */}
       <div className={`text-2xl font-bold mono tracking-tight ${colorClass}`}>
-        {formatCurrency(value)}
+        {formatCurrency(value, currency)}
       </div>
 
       {/* Delta */}
