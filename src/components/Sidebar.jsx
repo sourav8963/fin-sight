@@ -37,6 +37,8 @@ const NAV = [
 export default function Sidebar() {
   const activePage = useStore((s) => s.activePage);
   const setActivePage = useStore((s) => s.setActivePage);
+  const rippleEffect = useStore((s) => s.rippleEffect);
+  const toggleRippleEffect = useStore((s) => s.toggleRippleEffect);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const content = (
@@ -77,6 +79,25 @@ export default function Sidebar() {
             </button>
           );
         })}
+        
+        <div className="mt-8">
+          <p className="px-3 text-[10px] font-semibold tracking-widest text-muted uppercase mb-2">Experiments</p>
+          <button
+            onClick={toggleRippleEffect}
+            className={`
+              w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium
+              transition-all duration-150 mb-0.5 text-muted hover:text-theme hover:bg-surface-2
+            `}
+          >
+            <div className="flex items-center gap-3">
+              <span>✧</span>
+              Ripple
+            </div>
+            <div className="w-7 h-4 rounded-full relative transition-colors" style={{ backgroundColor: rippleEffect ? 'var(--theme)' : 'var(--border)' }}>
+              <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-surface shadow transition-transform ${rippleEffect ? 'translate-x-3' : ''}`} />
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* Footer version */}

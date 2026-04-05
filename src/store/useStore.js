@@ -16,13 +16,15 @@ export const useStore = create(
       currency: 'INR',
       setCurrency: (currency) => set({ currency }),
 
-      // Theme
+      // Theme & Effects
       darkMode: false,
       toggleDarkMode: () => {
         const next = !get().darkMode;
         set({ darkMode: next });
         document.documentElement.classList.toggle('dark', next);
       },
+      rippleEffect: false,
+      toggleRippleEffect: () => set((s) => ({ rippleEffect: !s.rippleEffect })),
 
       // Navigation
       activePage: 'dashboard',
@@ -63,6 +65,7 @@ export const useStore = create(
         darkMode: s.darkMode,
         role: s.role,
         currency: s.currency,
+        rippleEffect: s.rippleEffect,
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.darkMode) {
