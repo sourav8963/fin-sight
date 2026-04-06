@@ -286,8 +286,8 @@ export default function Dashboard() {
                 data={categoryData}
                 cx="50%"
                 cy="50%"
-                innerRadius={38}
-                outerRadius={58}
+                innerRadius={32}
+                outerRadius={50}
                 paddingAngle={2}
                 dataKey="value"
                 strokeWidth={0}
