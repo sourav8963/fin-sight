@@ -25,20 +25,27 @@ export default function TopBar() {
 
       <div className="flex items-center gap-2">
         {/* Currency switcher */}
-        <select
-          value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-          className="text-xs font-semibold uppercase tracking-wider rounded-lg border border-theme p-1.5 cursor-pointer outline-none transition-all appearance-none text-center"
-          style={{ backgroundColor: 'var(--surface-2)', color: 'var(--theme)' }}
-        >
-          {currencies.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+        <div className="relative flex items-center">
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="text-xs font-semibold uppercase tracking-wider rounded-lg border border-theme py-1.5 pl-2.5 pr-6 cursor-pointer outline-none transition-all appearance-none"
+            style={{ backgroundColor: 'var(--surface-2)', color: 'var(--theme)' }}
+          >
+            {currencies.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <div className="absolute right-2 pointer-events-none" style={{ color: 'var(--theme)' }}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M2.5 3.5L5 6L7.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
 
         {/* Role switcher */}
         <div
-          className="hidden sm:flex items-center gap-1 rounded-lg border border-theme p-1"
+          className="flex items-center gap-1 rounded-lg border border-theme p-1"
           style={{ backgroundColor: 'var(--surface-2)' }}
         >
           {['viewer', 'admin'].map((r) => (
