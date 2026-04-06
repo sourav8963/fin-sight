@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { CATEGORIES, formatCurrency } from '../data/mockData';
 
@@ -27,6 +27,12 @@ export default function Transactions() {
   const deleteTransaction = useStore((s) => s.deleteTransaction);
 
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   const filtered = useMemo(() => {
     let result = [...transactions];
@@ -49,6 +55,12 @@ export default function Transactions() {
     });
     return result;
   }, [transactions, filters]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
 
   const hasFilters = filters.search || filters.type !== 'all' || filters.category !== 'all';
 
@@ -95,7 +107,7 @@ export default function Transactions() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-theme text-muted hover:text-theme transition-colors"
             style={{ backgroundColor: 'var(--surface)' }}
           >
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+            <svg aria-hidden="true" width="11" height="11" viewBox="0 0 11 11" fill="none">
               <path d="M5.5 1v6M3 5l2.5 2.5L8 5M1.5 9.5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             Export
@@ -106,7 +118,7 @@ export default function Transactions() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
               style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}
             >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" fill="none">
                 <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
               New
@@ -119,7 +131,7 @@ export default function Transactions() {
       <div className="bg-surface border border-theme rounded-xl p-3 sm:p-4">
         <div className="flex flex-wrap gap-2 sm:gap-3">
           <div className="w-full sm:flex-1 sm:min-w-48 relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <svg aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" width="13" height="13" viewBox="0 0 13 13" fill="none">
               <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4"/>
               <path d="M8.5 8.5l3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
             </svg>
@@ -147,7 +159,7 @@ export default function Transactions() {
               className="flex-1 sm:flex-initial px-3 py-2 rounded-lg border border-theme text-xs bg-surface-2 text-theme outline-none cursor-pointer"
             >
               <option value="all">All categories</option>
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {Array.from(new Set([...CATEGORIES, ...transactions.map(t => t.category)])).map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             {hasFilters && (
               <button
@@ -213,7 +225,7 @@ export default function Transactions() {
               {role === 'admin' && <span className="text-center">Actions</span>}
             </div>
             <div>
-              {filtered.map((tx, i) => (
+              {paginatedData.map((tx, i) => (
                 <DesktopRow
                   key={tx.id}
                   tx={tx}
@@ -230,7 +242,7 @@ export default function Transactions() {
 
           {/* Mobile cards — hidden on desktop */}
           <div className="sm:hidden space-y-2">
-            {filtered.map((tx) => (
+            {paginatedData.map((tx) => (
               <MobileCard
                 key={tx.id}
                 tx={tx}
@@ -242,6 +254,31 @@ export default function Transactions() {
               />
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-4 mt-6">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-lg border border-theme text-xs font-semibold text-theme hover:bg-surface-2 disabled:opacity-30 transition-all cursor-pointer disabled:cursor-not-allowed"
+                aria-label="Previous page"
+              >
+                ← Prev
+              </button>
+              <div className="text-xs text-muted">
+                Page <span className="font-bold text-theme">{currentPage}</span> of <span className="font-bold text-theme">{totalPages}</span>
+              </div>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-lg border border-theme text-xs font-semibold text-theme hover:bg-surface-2 disabled:opacity-30 transition-all cursor-pointer disabled:cursor-not-allowed"
+                aria-label="Next page"
+              >
+                Next →
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -250,7 +287,7 @@ export default function Transactions() {
 
 function SortIcon({ active, dir }) {
   return (
-    <svg width="8" height="10" viewBox="0 0 8 10" fill="none" className={active ? 'text-theme' : 'opacity-30'}>
+    <svg aria-hidden="true" width="8" height="10" viewBox="0 0 8 10" fill="none" className={active ? 'text-theme' : 'opacity-30'}>
       <path d="M4 1v8M1.5 3.5L4 1l2.5 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"
         style={{ opacity: active && dir === 'asc' ? 1 : 0.4 }} />
       <path d="M1.5 6.5L4 9l2.5-2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"
@@ -304,12 +341,12 @@ function DesktopRow({ tx, role, even, currency, onEdit, onDelete, confirmDelete 
       </div>
       {role === 'admin' && (
         <div className="flex items-center gap-1.5 justify-center opacity-40 group-hover:opacity-100 transition-opacity">
-          <button onClick={onDelete}
+          <button aria-label="Delete" onClick={onDelete}
             className={`px-2 py-1 text-base rounded-lg border transition-all leading-none flex items-center
               ${confirmDelete ? 'border-expense bg-expense text-expense font-bold text-xs' : 'border-theme text-theme hover:text-expense hover:border-expense bg-surface-2 opacity-90 hover:opacity-100'}`}
             title="Delete"
           >{confirmDelete ? 'Sure?' : '🗑'}</button>
-          <button onClick={onEdit}
+          <button aria-label="Edit" onClick={onEdit}
             className="px-2 py-1 text-base rounded-lg border border-theme text-muted hover:text-theme hover:border-accent transition-all leading-none flex items-center"
             title="Edit"
           >
@@ -354,14 +391,14 @@ function MobileCard({ tx, role, currency, onEdit, onDelete, confirmDelete }) {
         <p className="text-[11px] text-muted mono">{tx.date}</p>
         {role === 'admin' && (
           <div className="flex items-center gap-1.5">
-            <button onClick={onDelete}
+            <button aria-label="Delete" onClick={onDelete}
               className={`px-2.5 py-1 text-base rounded border transition-colors leading-none flex items-center
                 ${confirmDelete ? 'border-expense bg-expense text-expense text-xs font-bold' : 'border-theme text-theme hover:text-expense hover:border-expense bg-surface-2 opacity-90 hover:opacity-100'}`}
               title="Delete"
             >
               {confirmDelete ? 'Sure?' : '🗑'}
             </button>
-            <button onClick={onEdit} 
+            <button aria-label="Edit" onClick={onEdit} 
               className="px-2.5 py-1 text-base rounded border border-theme text-muted hover:text-theme transition-colors leading-none flex items-center"
               title="Edit"
             >

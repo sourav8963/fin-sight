@@ -5,7 +5,7 @@ export const CATEGORIES = [
   'Transport', 'Utilities', 'Health', 'Entertainment', 'Shopping', 'Other',
 ];
 
-export const INCOME_CATEGORIES = ['Salary', 'Freelance', 'Investment'];
+export const INCOME_CATEGORIES = ['Salary', 'Freelance', 'Investment', 'Other'];
 export const EXPENSE_CATEGORIES = ['Rent', 'Food', 'Transport', 'Utilities', 'Health', 'Entertainment', 'Shopping', 'Other'];
 
 const seed = [

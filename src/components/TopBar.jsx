@@ -37,7 +37,7 @@ export default function TopBar() {
             ))}
           </select>
           <div className="absolute right-2 pointer-events-none" style={{ color: 'var(--theme)' }}>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" fill="none">
               <path d="M2.5 3.5L5 6L7.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
@@ -72,7 +72,7 @@ export default function TopBar() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
             style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}
           >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" fill="none">
               <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
             Add
@@ -87,13 +87,13 @@ export default function TopBar() {
           aria-label="Toggle dark mode"
         >
           {darkMode ? (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none">
               <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.4"/>
               <path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.64 2.64l1.06 1.06M10.3 10.3l1.06 1.06M2.64 11.36l1.06-1.06M10.3 3.7l1.06-1.06"
                 stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
             </svg>
           ) : (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M12 8.5A6 6 0 0 1 5.5 2a5.5 5.5 0 1 0 6.5 6.5z"
                 stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>

@@ -7,6 +7,8 @@ export const useStore = create(
     (set, get) => ({
       // Data
       transactions: mockTransactions,
+      isLoading: true,
+      setIsLoading: (val) => set({ isLoading: val }),
 
       // Role
       role: 'viewer', // 'viewer' | 'admin'

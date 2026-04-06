@@ -6,7 +6,7 @@ const NAV = [
     id: 'dashboard',
     label: 'Overview',
     icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
         <rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
         <rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
         <rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
@@ -18,7 +18,7 @@ const NAV = [
     id: 'transactions',
     label: 'Transactions',
     icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M2 5h12M2 8h8M2 11h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
       </svg>
     ),
@@ -27,7 +27,7 @@ const NAV = [
     id: 'insights',
     label: 'Insights',
     icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M1 13L5 8l3 3 3-4 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
@@ -123,7 +123,7 @@ export default function Sidebar() {
         onClick={() => setMobileOpen((o) => !o)}
         aria-label="Menu"
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M1 3h12M1 7h12M1 11h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       </button>
