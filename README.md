@@ -1,125 +1,465 @@
-# Finsight — Finance Dashboard
+# 💰 FinSight – Financial Habit Builder & Wealth Growth Tracker
 
-A clean, interactive personal finance dashboard built with React, Zustand, and Recharts.
+<div align="center">
 
----
+![React](https://img.shields.io/badge/React-19-blue?logo=react)
+![Node.js](https://img.shields.io/badge/Node.js-Express-green?logo=node.js)
+![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-green?logo=mongodb)
+![JWT](https://img.shields.io/badge/Auth-JWT-orange)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
-## Overview
+**A Full-Stack Personal Finance Management Platform that helps users build healthy financial habits, track wealth growth, manage expenses, and achieve savings goals.**
 
-Finsight is a frontend-only finance tracking application that helps users visualize their financial activity, manage transactions, and understand spending patterns. It uses mock/static data and simulates role-based access without any backend.
-
-The design philosophy is intentionally editorial and minimal — avoiding the typical gradient-heavy AI dashboard aesthetic in favour of crisp typography, tight spacing, and contextual color usage.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | React 19 + Vite 8 |
-| Styling | Tailwind CSS v4 |
-| State Management | Zustand (with localStorage persistence) |
-| Charts | Recharts |
-| Date utilities | date-fns |
+</div>
 
 ---
 
-## Setup
+## 📖 Overview
+
+FinSight is a **Full-Stack MERN application** designed to help users improve their financial discipline by tracking income, expenses, savings goals, financial habits, investments, and overall wealth growth.
+
+Unlike traditional budgeting applications, FinSight focuses on **building long-term financial habits** through habit tracking, goal management, wealth analytics, and insightful dashboards.
+
+---
+
+## ✨ Features
+
+### 👤 Authentication
+
+- User Registration
+- Secure Login
+- JWT Authentication
+- Password Hashing (bcrypt)
+- Protected Routes
+- Role-Based Access (User/Admin)
+
+---
+
+### 📊 Dashboard
+
+- Financial Overview
+- Income Summary
+- Expense Summary
+- Savings Overview
+- Wealth Snapshot
+- Interactive Charts
+- Recent Transactions
+- Quick Statistics
+
+---
+
+### 💵 Income Management
+
+- Add Income
+- Edit Income
+- Delete Income
+- Categorize Income
+- Monthly Income Summary
+- Search & Filter
+
+---
+
+### 💸 Expense Management
+
+- Add Expenses
+- Edit Expenses
+- Delete Expenses
+- Category-wise Tracking
+- Expense Analytics
+- Monthly Spending Reports
+- Search & Filter
+- CSV Export
+
+---
+
+### 🎯 Savings Goals
+
+- Create Goals
+- Track Progress
+- Goal Contributions
+- Deadline Tracking
+- Progress Visualization
+
+---
+
+### 📈 Wealth Growth Tracker
+
+- Asset Tracking
+- Wealth Analytics
+- Financial Overview
+- Interactive Charts
+- Growth Monitoring
+
+---
+
+### 📌 Habit Tracker
+
+- Create Financial Habits
+- Daily Habit Tracking
+- Habit Streaks
+- Progress Monitoring
+- Completion History
+
+---
+
+### 💹 Investment Tracker
+
+- Track Investments
+- Investment Portfolio
+- Investment Summary
+- Performance Tracking
+
+---
+
+### 📅 Bills Management
+
+- Add Bills
+- Due Date Tracking
+- Payment Status
+- Bill History
+
+---
+
+### 👨‍💼 Admin Dashboard
+
+- User Management
+- Analytics Dashboard
+- Feedback Management
+- Platform Statistics
+
+---
+
+### 📑 Reports & Analytics
+
+- Financial Reports
+- Charts & Graphs
+- Monthly Analytics
+- CSV Export
+
+---
+
+## 🛠 Tech Stack
+
+### Frontend
+
+- React.js
+- TypeScript
+- Tailwind CSS
+- React Router
+- Zustand
+- React Hook Form
+- Recharts
+- Axios
+
+### Backend
+
+- Node.js
+- Express.js
+- JWT Authentication
+- bcryptjs
+- Express Validator
+- Helmet
+- Rate Limiter
+
+### Database
+
+- MongoDB Atlas
+- Mongoose
+
+### Deployment
+
+- Frontend → Vercel
+- Backend → Render
+- Database → MongoDB Atlas
+
+---
+
+## 📂 Project Structure
+
+```
+fin-sight/
+│
+├── client/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   ├── context/
+│   │   ├── utils/
+│   │   └── assets/
+│
+├── server/
+│   ├── config/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── services/
+│   ├── utils/
+│   ├── tests/
+│   └── server.js
+│
+└── README.md
+```
+
+---
+
+# 🚀 Installation
+
+## Clone Repository
 
 ```bash
-# Install dependencies
+git clone https://github.com/sourav8963/fin-sight.git
+
+cd fin-sight
+```
+
+---
+
+## Frontend Setup
+
+```bash
+cd client
+
 npm install
 
-# Start development server
 npm run dev
-
-# Build for production
-npm run build
 ```
 
-The app runs at `http://localhost:3000` by default.
-
----
-
-## Features
-
-### Dashboard Overview
-- **Summary cards** — Net Balance, Total Income, Total Expenses with month-over-month delta indicators
-- **Balance trend chart** — Area chart showing income vs expenses over the last 6 months
-- **Spending breakdown** — Donut chart with category legend
-- **Monthly comparison** — Grouped bar chart for income vs expenses per month
-- **Recent activity** — Last 5 transactions with quick-link to full list
-
-### Transactions
-- Full transaction table with date, amount, category, type, and description
-- **Search** — Full-text search across category, notes, and amount
-- **Filter** — By type (income/expense) and category
-- **Sort** — By date or amount (ascending/descending toggle)
-- **Export** — Download filtered transactions as CSV
-- **Admin actions** — Edit or delete transactions (with confirmation step)
-
-### Insights
-- **Savings rate** — Calculated as (income − expenses) / income × 100
-- **Net savings trend** — Monthly bar chart with green/red conditional coloring
-- **Category breakdown** — Horizontal progress bars with percentage of total spend
-- **Income sources** — Breakdown of income by category with percentage bars
-- **Observations** — Contextual insights: biggest expense, biggest income, savings health assessment
-
-### Role-Based UI
-- Toggle between **Viewer** and **Admin** in the top bar
-- **Viewer**: read-only access — can view all data but cannot add or modify transactions
-- **Admin**: full access — can add new transactions, edit existing ones, and delete
-
-### Additional Features
-- **Dark mode** — Toggle in the top bar; preference persisted via localStorage
-- **Data persistence** — All transactions and settings saved to localStorage via Zustand's `persist` middleware
-- **Empty states** — Graceful handling when no transactions match filters
-- **Input validation** — Form validation with inline error messages
-- **Responsive layout** — Mobile-first with collapsible sidebar on small screens
-
----
-
-## Project Structure
+Runs on
 
 ```
-src/
-├── components/
-│   ├── Layout.jsx          # App shell with sidebar + main content
-│   ├── Sidebar.jsx         # Navigation with mobile overlay
-│   ├── TopBar.jsx          # Role switcher, dark mode toggle, add button
-│   ├── SummaryCard.jsx     # Reusable KPI card
-│   └── TransactionModal.jsx # Add/edit transaction form
-├── pages/
-│   ├── Dashboard.jsx       # Overview with charts and recent activity
-│   ├── Transactions.jsx    # Full transaction list with filters
-│   └── Insights.jsx        # Financial insights and analytics
-├── store/
-│   └── useStore.js         # Zustand store — state, actions, persistence
-└── data/
-    └── mockData.js         # 60 mock transactions across 6 months + helpers
+http://localhost:5173
 ```
 
 ---
 
-## State Management
+## Backend Setup
 
-Zustand is used as a single global store with `persist` middleware. The store manages:
+```bash
+cd server
 
-- `transactions` — array of all transactions (persisted)
-- `role` — current user role: `'viewer'` | `'admin'` (persisted)
-- `darkMode` — boolean (persisted)
-- `filters` — search query, type, category, sortBy, sortDir (session only)
-- `modal` — open/close state for transaction form
-- `activePage` — current navigation page
+npm install
 
-All CRUD operations (add, update, delete) are pure state mutations — no async required for mock data.
+npm run dev
+```
+
+Runs on
+
+```
+http://localhost:5000
+```
 
 ---
 
-## Design Decisions
+## Environment Variables
 
-- **No CSS framework components** — All UI built with Tailwind utility classes for full control
-- **CSS custom properties** — Theme variables allow instant light/dark switching without JS class toggling per element
-- **Tabular numerics** — All currency values use `font-variant-numeric: tabular-nums` for aligned columns
-- **Conditional color** — Income values consistently green, expense values consistently warm red
-- **Staggered animations** — Cards animate in with small delays for a polished entry sequence
+Create a `.env` file inside the **server** folder.
+
+```env
+PORT=5000
+
+MONGO_URI=your_mongodb_connection_string
+
+JWT_SECRET=your_secret_key
+
+CLIENT_URL=http://localhost:5173
+
+EMAIL_USER=your_email@example.com
+
+EMAIL_PASS=your_email_password
+```
+
+---
+
+# 📷 Application Pages
+
+- Login
+- Register
+- Dashboard
+- Income Tracker
+- Expense Tracker
+- Savings Goals
+- Habit Tracker
+- Investment Tracker
+- Wealth Analytics
+- Bills Management
+- User Profile
+- Admin Dashboard
+
+---
+
+# 📊 Core Modules
+
+### Authentication Module
+
+- Secure Login
+- Registration
+- JWT Authentication
+- Authorization
+
+---
+
+### Financial Tracking
+
+- Income
+- Expenses
+- Savings
+- Investments
+- Bills
+
+---
+
+### Habit Builder
+
+- Daily Habits
+- Habit Streaks
+- Progress Tracking
+
+---
+
+### Wealth Analytics
+
+- Financial Charts
+- Spending Analysis
+- Wealth Overview
+
+---
+
+### Reports
+
+- CSV Export
+- Financial Analytics
+- Monthly Summary
+
+---
+
+# 🔒 Security Features
+
+- JWT Authentication
+- Password Hashing
+- Helmet Security
+- Rate Limiting
+- Input Validation
+- Protected Routes
+- Environment Variables
+- MongoDB Injection Protection
+
+---
+
+# 📈 Future Enhancements
+
+- Email Verification
+- Forgot Password
+- PDF Report Export
+- Excel Report Export
+- AI Financial Advisor
+- Bank Account Integration
+- Push Notifications
+- Mobile Application
+- OCR Receipt Scanner
+- Multi-Currency Support
+
+---
+
+# 🧪 Testing
+
+Run backend tests
+
+```bash
+cd server
+
+npm test
+```
+
+---
+
+# 🌐 Deployment
+
+### Frontend
+
+Vercel
+
+### Backend
+
+Render
+
+### Database
+
+MongoDB Atlas
+
+---
+
+# 📋 API Documentation
+
+After starting the backend, Swagger documentation is available at:
+
+```
+http://localhost:5000/api-docs
+```
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome!
+
+1. Fork the repository
+2. Create a new branch
+
+```bash
+git checkout -b feature-name
+```
+
+3. Commit changes
+
+```bash
+git commit -m "Added new feature"
+```
+
+4. Push
+
+```bash
+git push origin feature-name
+```
+
+5. Open a Pull Request
+
+---
+
+# 👨‍💻 Author
+
+**Sourav Kumar**
+
+- GitHub: https://github.com/sourav8963
+- LinkedIn: https://www.linkedin.com/in/sourav-kumar-bb8976301/
+
+---
+
+# 📄 License
+
+This project is licensed under the **MIT License**.
+
+---
+
+## ⭐ Support
+
+If you found this project helpful:
+
+⭐ Star this repository
+
+🍴 Fork the repository
+
+🛠 Contribute to the project
+
+---
+
+<div align="center">
+
+### 💡 "Build Better Financial Habits. Grow Your Wealth."
+
+Made with ❤️ by **Sourav Kumar**
+
+</div>
