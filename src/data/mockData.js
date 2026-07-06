@@ -91,6 +91,146 @@ export const mockTransactions = seed.map((item, i) => ({
   note: item.note,
 }));
 
+// Mock users
+export const mockUsers = [
+  {
+    id: 'usr-1',
+    name: 'Alex Rivera',
+    email: 'alex@example.com',
+    password: 'password123',
+    targetSavingsRate: 25,
+    role: 'viewer',
+    status: 'Active',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80',
+    joinedDate: '2026-01-15',
+  },
+  {
+    id: 'usr-2',
+    name: 'Sarah Chen',
+    email: 'admin@example.com',
+    password: 'adminpassword',
+    targetSavingsRate: 35,
+    role: 'admin',
+    status: 'Active',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80',
+    joinedDate: '2026-02-10',
+  },
+];
+
+// Mock habits
+export const mockHabits = [
+  {
+    id: 'hab-1',
+    userId: 'usr-1',
+    name: 'Save Daily ($10)',
+    frequency: 'daily',
+    streak: 5,
+    lastCompleted: format(subDays(new Date(), 0), 'yyyy-MM-dd'),
+    completionHistory: [
+      format(subDays(new Date(), 0), 'yyyy-MM-dd'),
+      format(subDays(new Date(), 1), 'yyyy-MM-dd'),
+      format(subDays(new Date(), 2), 'yyyy-MM-dd'),
+      format(subDays(new Date(), 3), 'yyyy-MM-dd'),
+      format(subDays(new Date(), 4), 'yyyy-MM-dd'),
+    ],
+  },
+  {
+    id: 'hab-2',
+    userId: 'usr-1',
+    name: 'Log Daily Expenses',
+    frequency: 'daily',
+    streak: 12,
+    lastCompleted: format(subDays(new Date(), 0), 'yyyy-MM-dd'),
+    completionHistory: Array.from({ length: 12 }, (_, idx) => format(subDays(new Date(), idx), 'yyyy-MM-dd')),
+  },
+  {
+    id: 'hab-3',
+    userId: 'usr-1',
+    name: 'Invest Monthly',
+    frequency: 'monthly',
+    streak: 3,
+    lastCompleted: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+    completionHistory: [
+      format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+      format(subDays(new Date(), 35), 'yyyy-MM-dd'),
+      format(subDays(new Date(), 65), 'yyyy-MM-dd'),
+    ],
+  },
+];
+
+// Mock savings goals
+export const mockGoals = [
+  {
+    id: 'goal-1',
+    userId: 'usr-1',
+    name: 'Emergency Fund',
+    targetAmount: 12000,
+    currentAmount: 4500,
+    targetDate: '2026-12-31',
+    category: 'Emergency',
+    contributions: [
+      { id: 'c-1', amount: 1500, date: format(subDays(new Date(), 40), 'yyyy-MM-dd'), note: 'Tax refund contribution' },
+      { id: 'c-2', amount: 1500, date: format(subDays(new Date(), 20), 'yyyy-MM-dd'), note: 'Monthly savings surplus' },
+      { id: 'c-3', amount: 1500, date: format(subDays(new Date(), 2), 'yyyy-MM-dd'), note: 'Freelance savings' },
+    ],
+  },
+  {
+    id: 'goal-2',
+    userId: 'usr-1',
+    name: 'Japan Vacation',
+    targetAmount: 5000,
+    currentAmount: 2200,
+    targetDate: '2027-04-30',
+    category: 'Travel',
+    contributions: [
+      { id: 'c-4', amount: 1000, date: format(subDays(new Date(), 30), 'yyyy-MM-dd'), note: 'Initial savings' },
+      { id: 'c-5', amount: 1200, date: format(subDays(new Date(), 10), 'yyyy-MM-dd'), note: 'Bonus contribution' },
+    ],
+  },
+];
+
+// Mock assets/investments for wealth tracking
+export const mockAssets = [
+  { id: 'ast-1', userId: 'usr-1', name: 'High-Yield Savings', category: 'Cash', amount: 8200, lastUpdated: format(new Date(), 'yyyy-MM-dd') },
+  { id: 'ast-2', userId: 'usr-1', name: 'Brokerage ETF (VOO)', category: 'Investment', amount: 14500, lastUpdated: format(new Date(), 'yyyy-MM-dd') },
+  { id: 'ast-3', userId: 'usr-1', name: 'Crypto (BTC + ETH)', category: 'Investment', amount: 3800, lastUpdated: format(new Date(), 'yyyy-MM-dd') },
+  { id: 'ast-4', userId: 'usr-1', name: 'Student Loan Liability', category: 'Liabilities', amount: 5000, lastUpdated: format(new Date(), 'yyyy-MM-dd') },
+];
+
+// Mock net worth history
+export const mockNetWorthHistory = [
+  { month: 'Jan', netWorth: 14500, assets: 19500, liabilities: 5000 },
+  { month: 'Feb', netWorth: 16100, assets: 21100, liabilities: 5000 },
+  { month: 'Mar', netWorth: 18200, assets: 23200, liabilities: 5000 },
+  { month: 'Apr', netWorth: 20100, assets: 25100, liabilities: 5000 },
+  { month: 'May', netWorth: 20600, assets: 25600, liabilities: 5000 },
+  { month: 'Jun', netWorth: 21500, assets: 26500, liabilities: 5000 },
+];
+
+// Mock feedback complaints
+export const mockFeedback = [
+  {
+    id: 'fb-1',
+    userId: 'usr-1',
+    userName: 'Alex Rivera',
+    type: 'suggestion',
+    message: 'It would be great to see automated bank sync in Phase 2.',
+    date: format(subDays(new Date(), 4), 'yyyy-MM-dd'),
+    status: 'pending',
+    reply: '',
+  },
+  {
+    id: 'fb-2',
+    userId: 'usr-1',
+    userName: 'Alex Rivera',
+    type: 'complaint',
+    message: 'The chart details were slightly laggy on my older mobile device.',
+    date: format(subDays(new Date(), 10), 'yyyy-MM-dd'),
+    status: 'resolved',
+    reply: 'Thank you Alex! We have optimized the Recharts rendering to use pure CSS transition transforms.',
+  },
+];
+
 // Helpers
 export function getMonthlyData(transactions) {
   const months = {};
@@ -142,3 +282,4 @@ export function formatCurrency(n, currencyCode = 'INR') {
 export function generateId() {
   return `tx-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
+

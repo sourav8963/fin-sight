@@ -56,9 +56,14 @@ const GlassCursor = ({ x, y, width, height, darkMode }) => {
 };
 
 export default function Insights() {
-  const transactions = useStore((s) => s.transactions);
+  const allTransactions = useStore((s) => s.transactions);
+  const currentUser = useStore((s) => s.currentUser);
   const darkMode = useStore((s) => s.darkMode);
   const currency = useStore((s) => s.currency);
+
+  const transactions = useMemo(() => {
+    return allTransactions.filter((t) => !t.userId || t.userId === currentUser?.id);
+  }, [allTransactions, currentUser]);
 
   const monthlyData = useMemo(() => getMonthlyData(transactions), [transactions]);
   const categoryData = useMemo(() => getCategoryData(transactions), [transactions]);

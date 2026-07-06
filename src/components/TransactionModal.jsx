@@ -38,6 +38,7 @@ function TransactionModalContent({ modal, closeModal, addTransaction, updateTran
   const currency = useStore((s) => s.currency);
   const setCurrency = useStore((s) => s.setCurrency);
   const transactions = useStore((s) => s.transactions);
+  const currentUser = useStore((s) => s.currentUser);
 
   const customCats = useMemo(() => {
     const inc = [], exp = [];
@@ -123,6 +124,7 @@ function TransactionModalContent({ modal, closeModal, addTransaction, updateTran
       category: finalCategory,
       amount: Number(form.amount) / rate,
       id: isEdit ? form.id : generateId(),
+      userId: currentUser?.id || 'usr-1',
     };
     delete tx.customCategory;
     if (isEdit) {

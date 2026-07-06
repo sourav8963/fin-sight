@@ -143,10 +143,23 @@ const GlassCursor = ({ x, y, width, height, darkMode }) => {
 };
 
 export default function Dashboard() {
-  const transactions = useStore((s) => s.transactions);
+  const allTransactions = useStore((s) => s.transactions);
   const darkMode = useStore((s) => s.darkMode);
   const currency = useStore((s) => s.currency);
   const [activePieIndex, setActivePieIndex] = useState(null);
+
+  const habits = useStore((s) => s.habits);
+  const goals = useStore((s) => s.goals);
+  const currentUser = useStore((s) => s.currentUser);
+  const toggleHabitCompletion = useStore((s) => s.toggleHabitCompletion);
+  const setActivePage = useStore((s) => s.setActivePage);
+
+  const transactions = useMemo(() => {
+    return allTransactions.filter((t) => !t.userId || t.userId === currentUser?.id);
+  }, [allTransactions, currentUser]);
+
+  const userHabits = useMemo(() => habits.filter(h => h.userId === (currentUser?.id || 'usr-1')), [habits, currentUser]);
+  const userGoals = useMemo(() => goals.filter(g => g.userId === (currentUser?.id || 'usr-1')), [goals, currentUser]);
 
   const onPieEnter = useCallback((_, index) => {
     setActivePieIndex(index);
@@ -223,6 +236,89 @@ export default function Dashboard() {
             type="expense"
             icon="↓"
           />
+        </div>
+      </div>
+
+      {/* Habits & Savings Goals Widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Habit Widget */}
+        <div className="bg-surface border border-theme rounded-xl p-5 slide-up stagger-4">
+          <div className="flex justify-between items-center mb-3">
+            <div>
+              <h2 className="text-sm font-semibold text-theme tracking-tight">Active Habits</h2>
+              <p className="text-xs text-muted">Toggle today's check-ins</p>
+            </div>
+            <button
+              onClick={() => setActivePage('habits')}
+              className="text-[11px] text-muted hover:text-theme transition-colors font-medium"
+            >
+              Manage Habits →
+            </button>
+          </div>
+          {userHabits.length === 0 ? (
+            <p className="text-xs text-muted py-4">No active habits. Create one to build discipline!</p>
+          ) : (
+            <div className="space-y-2.5">
+              {userHabits.slice(0, 2).map((habit) => {
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const completed = habit.completionHistory.includes(todayStr);
+                return (
+                  <div key={habit.id} className="flex justify-between items-center bg-surface-2 p-3 border border-theme rounded-lg text-xs">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-theme truncate">{habit.name}</p>
+                      <p className="text-[10px] text-muted mt-0.5">Streak: <strong className="text-income font-bold">🔥 {habit.streak} days</strong></p>
+                    </div>
+                    <button
+                      onClick={() => toggleHabitCompletion(habit.id, todayStr)}
+                      className={`w-7 h-7 rounded-full border flex items-center justify-center font-bold text-xs transition-all hover:scale-105
+                        ${completed ? 'bg-income/10 border-income text-income' : 'bg-surface border-theme text-muted'}`}
+                    >
+                      {completed ? '✓' : '○'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Savings Goals Widget */}
+        <div className="bg-surface border border-theme rounded-xl p-5 slide-up stagger-4">
+          <div className="flex justify-between items-center mb-3">
+            <div>
+              <h2 className="text-sm font-semibold text-theme tracking-tight">Savings Goals</h2>
+              <p className="text-xs text-muted">Progress toward active targets</p>
+            </div>
+            <button
+              onClick={() => setActivePage('goals')}
+              className="text-[11px] text-muted hover:text-theme transition-colors font-medium"
+            >
+              Manage Goals →
+            </button>
+          </div>
+          {userGoals.length === 0 ? (
+            <p className="text-xs text-muted py-4">No active goals. Set a target and track savings!</p>
+          ) : (
+            <div className="space-y-2.5">
+              {userGoals.slice(0, 2).map((goal) => {
+                const pct = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+                return (
+                  <div key={goal.id} className="bg-surface-2 p-3 border border-theme rounded-lg text-xs space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-semibold text-theme truncate">{goal.name}</span>
+                      <span className="font-semibold text-theme mono">{pct.toFixed(0)}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-surface border border-theme rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-income rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, pct)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

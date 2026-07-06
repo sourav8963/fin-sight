@@ -17,7 +17,8 @@ const CATEGORY_ICONS = {
 };
 
 export default function Transactions() {
-  const transactions = useStore((s) => s.transactions);
+  const allTransactions = useStore((s) => s.transactions);
+  const currentUser = useStore((s) => s.currentUser);
   const filters = useStore((s) => s.filters);
   const setFilter = useStore((s) => s.setFilter);
   const resetFilters = useStore((s) => s.resetFilters);
@@ -25,6 +26,10 @@ export default function Transactions() {
   const openModal = useStore((s) => s.openModal);
   const currency = useStore((s) => s.currency);
   const deleteTransaction = useStore((s) => s.deleteTransaction);
+
+  const transactions = useMemo(() => {
+    return allTransactions.filter((t) => !t.userId || t.userId === currentUser?.id);
+  }, [allTransactions, currentUser]);
 
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
