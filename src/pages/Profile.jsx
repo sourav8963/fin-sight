@@ -4,33 +4,70 @@ import { useStore } from '../store/useStore';
 export default function Profile() {
   const currentUser = useStore((s) => s.currentUser);
   const updateProfile = useStore((s) => s.updateProfile);
+  const changePassword = useStore((s) => s.changePassword);
   const submitFeedback = useStore((s) => s.submitFeedback);
   const feedback = useStore((s) => s.feedback);
 
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [targetRate, setTargetRate] = useState(currentUser?.targetSavingsRate || 20);
-  const [pass, setPass] = useState('');
   const [profileSuccess, setProfileSuccess] = useState('');
+  const [profileError, setProfileError] = useState('');
+
+  // Password reset state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passSuccess, setPassSuccess] = useState('');
+  const [passError, setPassError] = useState('');
+
+  // Notification Preferences mockup state
+  const [emailBudget, setEmailBudget] = useState(true);
+  const [pushHabit, setPushHabit] = useState(true);
+  const [weeklyDigest, setWeeklyDigest] = useState(false);
 
   // Feedback form state
   const [fbType, setFbType] = useState('suggestion');
   const [fbMessage, setFbMessage] = useState('');
   const [feedbackSuccess, setFeedbackSuccess] = useState('');
 
-  const handleUpdateProfile = (e) => {
+  const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setProfileSuccess('');
+    setProfileError('');
 
-    const updates = { name, email, targetSavingsRate: Number(targetRate) };
-    if (pass.trim()) {
-      updates.password = pass;
+    const res = await updateProfile({ name, email, targetSavingsRate: Number(targetRate) });
+    if (res.success) {
+      setProfileSuccess('Profile updated successfully!');
+      setTimeout(() => setProfileSuccess(''), 3000);
+    } else {
+      setProfileError(res.error || 'Failed to update profile.');
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPassSuccess('');
+    setPassError('');
+
+    if (!currentPassword || !newPassword) {
+      setPassError('Please fill in both fields.');
+      return;
     }
 
-    updateProfile(updates);
-    setProfileSuccess('Profile updated successfully!');
-    setPass('');
-    setTimeout(() => setProfileSuccess(''), 3000);
+    if (newPassword.length < 6) {
+      setPassError('New password must be at least 6 characters.');
+      return;
+    }
+
+    const res = await changePassword(currentPassword, newPassword);
+    if (res.success) {
+      setPassSuccess('Password updated successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setTimeout(() => setPassSuccess(''), 3000);
+    } else {
+      setPassError(res.error || 'Password update failed.');
+    }
   };
 
   const handleFeedback = (e) => {
@@ -41,12 +78,14 @@ export default function Profile() {
 
     submitFeedback(fbType, fbMessage);
     setFbMessage('');
-    setFeedbackSuccess('Feedback submitted successfully! Admin will review it.');
+    setFeedbackSuccess('Feedback ticket submitted! The administrator will review it.');
     setTimeout(() => setFeedbackSuccess(''), 3000);
   };
 
   // Filter feedback logged by this specific user
-  const userFeedback = feedback.filter((f) => f.userId === currentUser?.id);
+  const userFeedback = feedback.filter(
+    (f) => f.userId === currentUser?.id || f.userId === currentUser?._id
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 fade-in select-none">
@@ -54,7 +93,7 @@ export default function Profile() {
         {/* Profile Card Summary */}
         <div className="md:col-span-1 bg-surface border border-theme rounded-2xl p-6 flex flex-col items-center text-center">
           <img
-            src={currentUser?.avatar}
+            src={currentUser?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(currentUser?.name || '')}`}
             alt=""
             className="w-20 h-20 rounded-full border-2 border-theme bg-surface-2 object-cover mb-4"
           />
@@ -73,6 +112,10 @@ export default function Profile() {
               <span className="font-semibold text-theme mono">{currentUser?.joinedDate}</span>
             </div>
             <div className="flex justify-between text-xs">
+              <span className="text-muted">Total Balance XP:</span>
+              <span className="font-semibold text-income mono">{currentUser?.xp || 0} XP</span>
+            </div>
+            <div className="flex justify-between text-xs">
               <span className="text-muted">Target Savings Rate:</span>
               <span className="font-semibold text-theme mono">{currentUser?.targetSavingsRate}%</span>
             </div>
@@ -81,13 +124,19 @@ export default function Profile() {
 
         {/* Profile Edit details */}
         <div className="md:col-span-2 space-y-6">
+          {/* Personal Settings */}
           <div className="bg-surface border border-theme rounded-2xl p-6">
-            <h2 className="text-sm font-semibold text-theme mb-1">Account settings</h2>
-            <p className="text-xs text-muted mb-4">Adjust your personal credentials and target thresholds</p>
+            <h2 className="text-sm font-semibold text-theme mb-1">Account Settings</h2>
+            <p className="text-xs text-muted mb-4">Adjust your personal details and target savings threshold</p>
 
             {profileSuccess && (
               <div className="mb-4 p-3 bg-income/10 border border-income/30 text-income text-xs rounded-lg font-medium">
                 ✓ {profileSuccess}
+              </div>
+            )}
+            {profileError && (
+              <div className="mb-4 p-3 bg-expense/10 border border-expense/30 text-expense text-xs rounded-lg font-medium">
+                ⚠️ {profileError}
               </div>
             )}
 
@@ -113,32 +162,20 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-semibold tracking-widest text-muted uppercase block mb-1">New Password (Optional)</label>
+              <div>
+                <label className="text-[10px] font-semibold tracking-widest text-muted uppercase block mb-1">Target Savings Rate (%)</label>
+                <div className="flex items-center gap-2">
                   <input
-                    type="password"
-                    value={pass}
-                    onChange={(e) => setPass(e.target.value)}
-                    placeholder="Leave blank to keep current"
-                    className="w-full px-3 py-2 rounded-lg border border-theme text-xs bg-surface-2 text-theme outline-none focus:border-theme"
+                    type="range"
+                    min="5"
+                    max="75"
+                    step="5"
+                    value={targetRate}
+                    onChange={(e) => setTargetRate(Number(e.target.value))}
+                    className="flex-1 accent-current"
+                    style={{ color: 'var(--text)' }}
                   />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold tracking-widest text-muted uppercase block mb-1">Target Savings Rate (%)</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="range"
-                      min="5"
-                      max="75"
-                      step="5"
-                      value={targetRate}
-                      onChange={(e) => setTargetRate(Number(e.target.value))}
-                      className="flex-1 accent-current"
-                      style={{ color: 'var(--text)' }}
-                    />
-                    <span className="text-xs font-bold mono bg-surface-2 border border-theme px-2 py-1 rounded w-10 text-center">{targetRate}%</span>
-                  </div>
+                  <span className="text-xs font-bold mono bg-surface-2 border border-theme px-2 py-1 rounded w-10 text-center">{targetRate}%</span>
                 </div>
               </div>
 
@@ -147,9 +184,96 @@ export default function Profile() {
                 className="px-4 py-2 rounded-lg text-xs font-semibold hover:opacity-90 transition-all"
                 style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}
               >
-                Save Changes
+                Save Details
               </button>
             </form>
+          </div>
+
+          {/* Change Password Form */}
+          <div className="bg-surface border border-theme rounded-2xl p-6">
+            <h2 className="text-sm font-semibold text-theme mb-1">Security & Password</h2>
+            <p className="text-xs text-muted mb-4">Modify your password to keep your dashboard secure</p>
+
+            {passSuccess && (
+              <div className="mb-4 p-3 bg-income/10 border border-income/30 text-income text-xs rounded-lg font-medium">
+                ✓ {passSuccess}
+              </div>
+            )}
+            {passError && (
+              <div className="mb-4 p-3 bg-expense/10 border border-expense/30 text-expense text-xs rounded-lg font-medium">
+                ⚠️ {passError}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-semibold tracking-widest text-muted uppercase block mb-1">Current Password</label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3 py-2 rounded-lg border border-theme text-xs bg-surface-2 text-theme outline-none focus:border-theme"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold tracking-widest text-muted uppercase block mb-1">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    className="w-full px-3 py-2 rounded-lg border border-theme text-xs bg-surface-2 text-theme outline-none focus:border-theme"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-lg text-xs font-semibold hover:opacity-90 transition-all"
+                style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}
+              >
+                Change Password
+              </button>
+            </form>
+          </div>
+
+          {/* Preferences */}
+          <div className="bg-surface border border-theme rounded-2xl p-6">
+            <h2 className="text-sm font-semibold text-theme mb-1">Preferences & Notifications</h2>
+            <p className="text-xs text-muted mb-4">Choose how you wish to receive notifications and system reminders</p>
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 text-xs text-theme cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={emailBudget}
+                  onChange={(e) => setEmailBudget(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border border-theme text-theme accent-current"
+                  style={{ color: 'var(--text)' }}
+                />
+                <span>Email alerts when expense transactions exceed monthly category budgets</span>
+              </label>
+              <label className="flex items-center gap-3 text-xs text-theme cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={pushHabit}
+                  onChange={(e) => setPushHabit(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border border-theme text-theme accent-current"
+                  style={{ color: 'var(--text)' }}
+                />
+                <span>Habit check-in calendar streaks daily reminders</span>
+              </label>
+              <label className="flex items-center gap-3 text-xs text-theme cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={weeklyDigest}
+                  onChange={(e) => setWeeklyDigest(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border border-theme text-theme accent-current"
+                  style={{ color: 'var(--text)' }}
+                />
+                <span>Send weekly performance reports and wealth summary logs</span>
+              </label>
+            </div>
           </div>
 
           {/* Feedback Form */}
@@ -209,7 +333,7 @@ export default function Profile() {
               <p className="text-xs text-muted mb-4">Track progress of your submitted queries</p>
               <div className="space-y-3 max-h-60 overflow-y-auto">
                 {userFeedback.map((ticket) => (
-                  <div key={ticket.id} className="p-3 border border-theme rounded-xl bg-surface-2 text-xs">
+                  <div key={ticket._id || ticket.id} className="p-3 border border-theme rounded-xl bg-surface-2 text-xs">
                     <div className="flex justify-between items-center mb-1.5">
                       <span className="font-semibold text-theme capitalize">
                         {ticket.type === 'bug' ? '🐛' : ticket.type === 'complaint' ? '⚠️' : '💡'} {ticket.type}

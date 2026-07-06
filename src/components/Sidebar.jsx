@@ -72,6 +72,16 @@ export default function Sidebar() {
       ),
     },
     {
+      id: 'investments',
+      label: 'Investment Tracker',
+      icon: (
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M6 10h4M8 6h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      ),
+    },
+    {
       id: 'profile',
       label: 'Profile Settings',
       icon: (

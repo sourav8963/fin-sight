@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { formatCurrency } from '../data/mockData';
 
@@ -10,6 +10,12 @@ export default function SavingsGoals() {
   const currency = useStore((s) => s.currency);
   const currentUser = useStore((s) => s.currentUser);
   
+  // Budget Limit API
+  const budgetLimits = useStore((s) => s.budgetLimits);
+  const setBudgetLimit = useStore((s) => s.setBudgetLimit);
+  const budgetAlert = useStore((s) => s.budgetAlert);
+  const clearAlerts = useStore((s) => s.clearAlerts);
+
   // Transactions needed to compute available balance
   const transactions = useStore((s) => s.transactions);
 
@@ -26,16 +32,28 @@ export default function SavingsGoals() {
   const [contribNote, setContribNote] = useState('');
   const [contribError, setContribError] = useState('');
 
+  // Category budget form state
+  const [budgetCategory, setBudgetCategory] = useState('Food');
+  const [budgetAmt, setBudgetAmt] = useState('');
+  const [showBudgetForm, setShowBudgetForm] = useState(false);
+
+  // Clear alerts on unmount
+  useEffect(() => {
+    return () => clearAlerts();
+  }, [clearAlerts]);
+
   // Filter goals for current user
   const userGoals = useMemo(() => {
-    return goals.filter((g) => g.userId === (currentUser?.id || 'usr-1'));
+    return goals.filter((g) => g.userId === (currentUser?.id || currentUser?._id));
   }, [goals, currentUser]);
 
-  // Compute available balance
-  const availableBalance = useMemo(() => {
+  // Compute available balance and savings rate
+  const balanceStats = useMemo(() => {
     const income = transactions.filter((t) => t.type === 'income').reduce((a, t) => a + t.amount, 0);
     const expenses = transactions.filter((t) => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
-    return income - expenses;
+    const savings = income - expenses;
+    const rate = income > 0 ? (savings / income) * 100 : 0;
+    return { available: savings, rate, income, expenses };
   }, [transactions]);
 
   const handleSubmit = (e) => {
@@ -58,7 +76,7 @@ export default function SavingsGoals() {
       return;
     }
 
-    if (parsedAmt > availableBalance) {
+    if (parsedAmt > balanceStats.available) {
       setContribError('Insufficient balance to contribute this amount');
       return;
     }
@@ -67,6 +85,14 @@ export default function SavingsGoals() {
     setContribAmt('');
     setContribNote('');
     setActiveGoalId(null);
+  };
+
+  const handleSaveBudget = (e) => {
+    e.preventDefault();
+    if (!budgetAmt || isNaN(Number(budgetAmt))) return;
+    setBudgetLimit(budgetCategory, Number(budgetAmt));
+    setBudgetAmt('');
+    setShowBudgetForm(false);
   };
 
   // Calculations
@@ -78,20 +104,61 @@ export default function SavingsGoals() {
     return { totalTarget, totalCurrent, overallPct };
   }, [userGoals]);
 
+  // Generate savings suggestions
+  const recommendation = useMemo(() => {
+    const target = currentUser?.targetSavingsRate || 20;
+    const current = balanceStats.rate;
+
+    if (balanceStats.income === 0) {
+      return {
+        type: 'warning',
+        text: 'Configure your monthly income to activate savings rate tracking recommendations.'
+      };
+    }
+
+    if (current < target) {
+      return {
+        type: 'caution',
+        text: `Your savings rate is ${current.toFixed(1)}%, which is below your target of ${target}%. We recommend reviewing non-essential expenses, capping your Food budget limit, and checking off your daily 'Log Expenses' habit to prevent cash leaks.`
+      };
+    } else {
+      return {
+        type: 'success',
+        text: `Superb! Your savings rate is ${current.toFixed(1)}%, exceeding your target of ${target}%. Consider allocating your surplus balance (${formatCurrency(balanceStats.available, currency)}) to your Emergency or Vacation savings goals!`
+      };
+    }
+  }, [balanceStats, currentUser, currency]);
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 fade-in select-none">
-      {/* Header and top summary */}
+      {/* Budget Limit warning toast */}
+      {budgetAlert && (
+        <div className="p-4 bg-expense/15 border border-expense/30 text-expense text-xs rounded-xl font-bold flex justify-between items-center slide-up">
+          <span>⚠️ {budgetAlert.message}</span>
+          <button onClick={clearAlerts} className="opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
+
+      {/* Header Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs text-muted">Plan for big purchases, emergencies, and investments with tracking targets</p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all flex items-center gap-1"
-          style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}
-        >
-          {showForm ? 'Cancel' : '➕ Create Goal'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowBudgetForm(!showBudgetForm)}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-theme bg-surface-2 hover:opacity-90 transition-all"
+          >
+            {showBudgetForm ? 'Cancel Budget' : '🛡️ Set Category Budget'}
+          </button>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all"
+            style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}
+          >
+            {showForm ? 'Cancel Goal' : '➕ Create Goal'}
+          </button>
+        </div>
       </div>
 
       {/* Aggregate Stats */}
@@ -103,7 +170,7 @@ export default function SavingsGoals() {
             <span className="text-xs text-muted">saved of {formatCurrency(stats.totalTarget, currency)} target</span>
           </div>
           <p className="text-xs text-muted">
-            Available to Save: <span className="font-bold text-income mono">{formatCurrency(availableBalance, currency)}</span>
+            Available to Save: <span className="font-bold text-income mono">{formatCurrency(balanceStats.available, currency)}</span>
           </p>
         </div>
 
@@ -121,6 +188,59 @@ export default function SavingsGoals() {
           </div>
         </div>
       </div>
+
+      {/* Savings Recommendations banner */}
+      <div className={`p-4 border rounded-2xl text-xs font-medium flex gap-3 items-start
+        ${recommendation.type === 'success' 
+          ? 'bg-income/10 border-income/20 text-income' 
+          : recommendation.type === 'caution' 
+          ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-600 dark:text-yellow-400' 
+          : 'bg-surface border-theme text-muted'}`}
+      >
+        <span className="text-lg shrink-0">{recommendation.type === 'success' ? '💡' : '⚠️'}</span>
+        <div className="space-y-0.5">
+          <p className="font-bold uppercase tracking-wider text-[10px]">Savings Assistant Suggestions</p>
+          <p className="leading-relaxed">{recommendation.text}</p>
+        </div>
+      </div>
+
+      {/* Category Budget Form */}
+      {showBudgetForm && (
+        <form onSubmit={handleSaveBudget} className="bg-surface border border-theme rounded-xl p-5 space-y-4 slide-up">
+          <h2 className="text-sm font-semibold text-theme">Setup Monthly Category Budget Limit</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+            <div>
+              <label className="text-[10px] font-semibold tracking-widest text-muted uppercase block mb-1">Expense Category</label>
+              <select
+                value={budgetCategory}
+                onChange={(e) => setBudgetCategory(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-theme text-xs bg-surface-2 text-theme outline-none cursor-pointer"
+              >
+                {['Food', 'Shopping', 'Entertainment', 'Housing', 'Transportation', 'Utilities', 'Investment', 'Other'].map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold tracking-widest text-muted uppercase block mb-1">Monthly Spending Cap</label>
+              <input
+                type="number"
+                placeholder="500"
+                value={budgetAmt}
+                onChange={(e) => setBudgetAmt(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-theme text-xs bg-surface-2 text-theme placeholder:text-muted outline-none"
+              />
+            </div>
+            <button
+              type="submit"
+              className="py-2 px-4 rounded-lg text-xs font-semibold hover:opacity-90 transition-all"
+              style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}
+            >
+              Save Cap Limit
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* Goal Creator Form */}
       {showForm && (
@@ -181,132 +301,181 @@ export default function SavingsGoals() {
         </div>
       )}
 
-      {/* Goals Grid */}
-      {userGoals.length === 0 ? (
-        <div className="bg-surface border border-theme rounded-xl py-16 text-center">
-          <p className="text-3xl mb-2">🎯</p>
-          <p className="text-sm font-semibold text-theme">No active goals found</p>
-          <p className="text-xs text-muted mt-1">Start tracking your saving goals by clicking "Create Goal" above.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {userGoals.map((goal) => {
-            const pct = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
-            const isContributing = activeGoalId === goal.id;
-            const daysLeft = Math.ceil((new Date(goal.targetDate) - new Date()) / (1000 * 60 * 60 * 24));
-            
-            return (
-              <div key={goal.id} className="bg-surface border border-theme rounded-xl p-5 flex flex-col justify-between space-y-4">
-                {/* Header row */}
-                <div>
-                  <div className="flex justify-between items-start">
+      {/* Main layout grid for active goals and active budgets side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Goals List */}
+        <div className="lg:col-span-2 space-y-4">
+          <h2 className="text-sm font-semibold text-theme">Active Goals</h2>
+          {userGoals.length === 0 ? (
+            <div className="bg-surface border border-theme rounded-xl py-16 text-center">
+              <p className="text-3xl mb-2">🎯</p>
+              <p className="text-sm font-semibold text-theme">No active goals found</p>
+              <p className="text-xs text-muted mt-1">Start tracking your saving goals by clicking "Create Goal" above.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {userGoals.map((goal) => {
+                const pct = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+                const isContributing = activeGoalId === (goal._id || goal.id);
+                const daysLeft = Math.ceil((new Date(goal.targetDate) - new Date()) / (1000 * 60 * 60 * 24));
+                
+                return (
+                  <div key={goal._id || goal.id} className="bg-surface border border-theme rounded-xl p-5 flex flex-col justify-between space-y-4">
                     <div>
-                      <h3 className="text-xs font-bold text-theme">{goal.name}</h3>
-                      <span className="text-[9px] uppercase font-bold text-muted bg-surface-2 border border-theme px-1.5 py-0.5 rounded mt-1 inline-block">
-                        {goal.category}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => deleteGoal(goal.id)}
-                      className="text-muted hover:text-expense text-xs p-1"
-                      title="Delete Goal"
-                    >
-                      🗑
-                    </button>
-                  </div>
-
-                  {/* Progress detail */}
-                  <div className="mt-4 flex justify-between items-baseline text-xs">
-                    <span className="text-muted">Progress</span>
-                    <span className="font-semibold text-theme mono">
-                      {formatCurrency(goal.currentAmount, currency)} / {formatCurrency(goal.targetAmount, currency)}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 w-full bg-surface-2 border border-theme rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-income rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, pct)}%` }}
-                    />
-                  </div>
-
-                  <div className="mt-3 flex justify-between text-[10px] text-muted">
-                    <span>Target: <strong className="text-theme mono">{goal.targetDate}</strong></span>
-                    <span>
-                      {daysLeft > 0 ? (
-                        <strong className="text-theme">{daysLeft} Days left</strong>
-                      ) : (
-                        <strong className="text-expense">Goal Target Passed</strong>
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Contribution Action form */}
-                <div className="border-t border-theme pt-3.5">
-                  {!isContributing ? (
-                    <button
-                      onClick={() => { setActiveGoalId(goal.id); setContribError(''); }}
-                      className="w-full py-1.5 rounded-lg border border-theme text-xs font-semibold text-muted hover:text-theme bg-surface-2 hover:bg-surface-2 transition-all"
-                    >
-                      💰 Contribute Funds
-                    </button>
-                  ) : (
-                    <div className="space-y-2">
-                      {contribError && <p className="text-[10px] text-expense font-semibold">{contribError}</p>}
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          placeholder="Amount"
-                          value={contribAmt}
-                          onChange={(e) => setContribAmt(e.target.value)}
-                          className="w-24 px-2 py-1.5 rounded-lg border border-theme text-xs bg-surface-2 text-theme placeholder:text-muted outline-none"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Description (Optional)"
-                          value={contribNote}
-                          onChange={(e) => setContribNote(e.target.value)}
-                          className="flex-1 px-2 py-1.5 rounded-lg border border-theme text-xs bg-surface-2 text-theme placeholder:text-muted outline-none"
-                        />
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-xs font-bold text-theme">{goal.name}</h3>
+                          <span className="text-[9px] uppercase font-bold text-muted bg-surface-2 border border-theme px-1.5 py-0.5 rounded mt-1 inline-block">
+                            {goal.category}
+                          </span>
+                        </div>
                         <button
-                          onClick={() => handleContribute(goal.id)}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-income hover:opacity-90 transition-all shrink-0"
+                          onClick={() => deleteGoal(goal._id || goal.id)}
+                          className="text-muted hover:text-expense text-xs p-1"
+                          title="Delete Goal"
                         >
-                          Send
-                        </button>
-                        <button
-                          onClick={() => setActiveGoalId(null)}
-                          className="px-2.5 py-1.5 rounded-lg border border-theme text-xs text-muted hover:text-theme bg-surface-2 transition-all shrink-0"
-                        >
-                          ✕
+                          🗑
                         </button>
                       </div>
-                    </div>
-                  )}
-                </div>
 
-                {/* Contribution History list */}
-                {goal.contributions.length > 0 && (
-                  <div className="pt-3 border-t border-theme">
-                    <p className="text-[9px] font-semibold tracking-wider text-muted uppercase mb-1.5">Contribution History</p>
-                    <div className="space-y-1.5 max-h-24 overflow-y-auto">
-                      {goal.contributions.map((contrib) => (
-                        <div key={contrib.id} className="flex justify-between items-center text-[10px] bg-surface-2 p-1.5 border border-theme rounded-md">
-                          <div className="min-w-0">
-                            <p className="text-theme font-medium truncate">{contrib.note}</p>
-                            <p className="text-[8px] text-muted mono mt-0.5">{contrib.date}</p>
-                          </div>
-                          <span className="font-bold text-income mono shrink-0">+{formatCurrency(contrib.amount, currency)}</span>
-                        </div>
-                      ))}
+                      {/* Progress detail */}
+                      <div className="mt-4 flex justify-between items-baseline text-xs">
+                        <span className="text-muted">Progress</span>
+                        <span className="font-semibold text-theme mono">
+                          {formatCurrency(goal.currentAmount, currency)} / {formatCurrency(goal.targetAmount, currency)}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 h-1.5 w-full bg-surface-2 border border-theme rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-income rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(100, pct)}%` }}
+                        />
+                      </div>
+
+                      <div className="mt-3 flex justify-between text-[10px] text-muted">
+                        <span>Target: <strong className="text-theme mono">{goal.targetDate}</strong></span>
+                        <span>
+                          {daysLeft > 0 ? (
+                            <strong className="text-theme">{daysLeft} Days left</strong>
+                          ) : (
+                            <strong className="text-expense">Goal Target Passed</strong>
+                          )}
+                        </span>
+                      </div>
                     </div>
+
+                    {/* Contribution Action form */}
+                    <div className="border-t border-theme pt-3.5">
+                      {!isContributing ? (
+                        <button
+                          onClick={() => { setActiveGoalId(goal._id || goal.id); setContribError(''); }}
+                          className="w-full py-1.5 rounded-lg border border-theme text-xs font-semibold text-muted hover:text-theme bg-surface-2 transition-all"
+                        >
+                          💰 Contribute Funds
+                        </button>
+                      ) : (
+                        <div className="space-y-2">
+                          {contribError && <p className="text-[10px] text-expense font-semibold">{contribError}</p>}
+                          <div className="flex gap-2">
+                            <input
+                              type="number"
+                              placeholder="Amt"
+                              value={contribAmt}
+                              onChange={(e) => setContribAmt(e.target.value)}
+                              className="w-20 px-2 py-1.5 rounded-lg border border-theme text-xs bg-surface-2 text-theme outline-none shrink-0"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Note"
+                              value={contribNote}
+                              onChange={(e) => setContribNote(e.target.value)}
+                              className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-theme text-xs bg-surface-2 text-theme placeholder:text-muted outline-none"
+                            />
+                            <button
+                              onClick={() => handleContribute(goal._id || goal.id)}
+                              className="px-2 py-1.5 rounded-lg text-xs font-semibold text-white bg-income hover:opacity-90 transition-all shrink-0"
+                            >
+                              Send
+                            </button>
+                            <button
+                              onClick={() => setActiveGoalId(null)}
+                              className="px-2.5 py-1.5 rounded-lg border border-theme text-xs text-muted hover:text-theme bg-surface-2 transition-all shrink-0"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contribution History list */}
+                    {goal.contributions && goal.contributions.length > 0 && (
+                      <div className="pt-3 border-t border-theme">
+                        <p className="text-[9px] font-semibold tracking-wider text-muted uppercase mb-1.5">Contribution History</p>
+                        <div className="space-y-1.5 max-h-24 overflow-y-auto">
+                          {goal.contributions.map((contrib) => (
+                            <div key={contrib._id || contrib.id} className="flex justify-between items-center text-[10px] bg-surface-2 p-1.5 border border-theme rounded-md">
+                              <div className="min-w-0 flex-1 pr-2">
+                                <p className="text-theme font-medium truncate">{contrib.note}</p>
+                                <p className="text-[8px] text-muted mono mt-0.5">{contrib.date}</p>
+                              </div>
+                              <span className="font-bold text-income mono shrink-0">+{formatCurrency(contrib.amount, currency)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Budgets sidebar summary */}
+        <div className="space-y-4">
+          <h2 className="text-sm font-semibold text-theme">Monthly Category Budgets</h2>
+          <div className="bg-surface border border-theme rounded-xl p-5">
+            {Object.keys(budgetLimits).length === 0 ? (
+              <p className="text-xs text-muted py-6 text-center">No category spending limits configured. Click "Set Category Budget" above to start capping expenses.</p>
+            ) : (
+              <div className="space-y-3.5">
+                {Object.entries(budgetLimits).map(([cat, limit]) => {
+                  // Calculate total spent in this category during current month
+                  const currentMonthPrefix = new Date().toISOString().slice(0, 7);
+                  const spent = transactions
+                    .filter((t) => t.category === cat && t.type === 'expense' && t.date.startsWith(currentMonthPrefix))
+                    .reduce((sum, t) => sum + t.amount, 0);
+
+                  const pct = limit > 0 ? (spent / limit) * 100 : 0;
+                  const isOver = spent > limit;
+
+                  return (
+                    <div key={cat} className="space-y-1">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span className="text-theme">{cat}</span>
+                        <span className={`mono ${isOver ? 'text-expense font-black' : 'text-theme'}`}>
+                          {formatCurrency(spent, currency)} / {formatCurrency(limit, currency)}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-surface-2 border border-theme rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${isOver ? 'bg-expense' : pct > 80 ? 'bg-yellow-500' : 'bg-income'}`}
+                          style={{ width: `${Math.min(100, pct)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[9px] text-muted">
+                        <span>Spent this month</span>
+                        <span>{pct.toFixed(0)}% Cap Used</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

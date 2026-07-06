@@ -120,6 +120,19 @@ export default function Insights() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-5 fade-in">
+      {/* Header and Print Export */}
+      <div className="flex justify-between items-center select-none no-print">
+        <div>
+          <p className="text-xs text-muted">Deep dive metrics, observations, and allocation distributions</p>
+        </div>
+        <button
+          onClick={() => window.print()}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-theme bg-surface-2 hover:opacity-95 transition-all flex items-center gap-1.5"
+        >
+          🖨️ Export PDF / Print
+        </button>
+      </div>
+
       {/* Insight KPI tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <InsightTile

@@ -13,6 +13,7 @@ import SavingsGoals from './pages/SavingsGoals';
 import WealthAnalytics from './pages/WealthAnalytics';
 import AdminPanel from './pages/AdminPanel';
 import Profile from './pages/Profile';
+import InvestmentTracker from './pages/InvestmentTracker';
 
 export default function App() {
   const activePage = useStore((s) => s.activePage);
@@ -37,6 +38,7 @@ export default function App() {
     habits: <HabitTracker />,
     goals: <SavingsGoals />,
     wealth: <WealthAnalytics />,
+    investments: <InvestmentTracker />,
     profile: <Profile />,
     admin: role === 'admin' ? <AdminPanel /> : <Dashboard />,
   };

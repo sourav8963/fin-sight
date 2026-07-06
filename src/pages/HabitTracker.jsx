@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -11,6 +11,14 @@ const PRESETS = [
   { name: 'Read Financial News', frequency: 'weekly' },
 ];
 
+const BADGES = [
+  { name: 'Streak Starter', desc: 'Maintain a 3-day streak', emoji: '🚀' },
+  { name: 'Consistency Champion', desc: 'Maintain a 7-day streak', emoji: '🏆' },
+  { name: 'Habit Master', desc: 'Maintain a 15-day streak', emoji: '👑' },
+  { name: 'Financial Guru', desc: 'Maintain a 30-day streak', emoji: '🎓' },
+  { name: 'Multi-Tasker', desc: 'Create 5 active habits', emoji: '🌟' }
+];
+
 export default function HabitTracker() {
   const habits = useStore((s) => s.habits);
   const addHabit = useStore((s) => s.addHabit);
@@ -18,11 +26,25 @@ export default function HabitTracker() {
   const deleteHabit = useStore((s) => s.deleteHabit);
   const currentUser = useStore((s) => s.currentUser);
   const darkMode = useStore((s) => s.darkMode);
+  
+  // Gamification notifications
+  const xpGained = useStore((s) => s.xpGained);
+  const badgeUnlocked = useStore((s) => s.badgeUnlocked);
+  const clearAlerts = useStore((s) => s.clearAlerts);
+
+  // Clear gamification alerts on unmount
+  useEffect(() => {
+    return () => clearAlerts();
+  }, [clearAlerts]);
 
   // New habit form state
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitFreq, setNewHabitFreq] = useState('daily');
   const [showForm, setShowForm] = useState(false);
+
+  // Level stats
+  const level = Math.floor((currentUser?.xp || 0) / 100) + 1;
+  const xpProgress = (currentUser?.xp || 0) % 100;
 
   // Generate date strings for the past 7 days (oldest to newest)
   const past7Days = useMemo(() => {
@@ -39,7 +61,7 @@ export default function HabitTracker() {
 
   // Filter habits for the current user
   const userHabits = useMemo(() => {
-    return habits.filter((h) => h.userId === (currentUser?.id || 'usr-1'));
+    return habits.filter((h) => h.userId === (currentUser?.id || currentUser?._id));
   }, [habits, currentUser]);
 
   const handleSubmit = (e) => {
@@ -100,18 +122,44 @@ export default function HabitTracker() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 fade-in select-none">
-      {/* Header Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs text-muted">Develop disciplined financial behaviours through consistent checking</p>
+      {/* Gamification alerts */}
+      {xpGained !== null && (
+        <div className="p-3 bg-income/10 border border-income/30 rounded-xl text-xs text-income font-semibold flex justify-between items-center slide-up">
+          <span>✨ Gained {xpGained} XP! Keep logging habits to level up.</span>
+          <button onClick={clearAlerts} className="opacity-60 hover:opacity-100">✕</button>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all flex items-center gap-1"
-          style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}
-        >
-          {showForm ? 'Cancel' : '➕ Custom Habit'}
-        </button>
+      )}
+
+      {badgeUnlocked && (
+        <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-xs text-yellow-600 dark:text-yellow-400 font-bold flex flex-col gap-1 slide-up">
+          <div className="flex justify-between items-center">
+            <span>🎉 Achievement Badge Unlocked!</span>
+            <button onClick={clearAlerts} className="opacity-60 hover:opacity-100">✕</button>
+          </div>
+          <p className="text-sm">Unlocked: {Array.isArray(badgeUnlocked) ? badgeUnlocked.join(', ') : badgeUnlocked}</p>
+        </div>
+      )}
+
+      {/* Gamified Level Indicator Widget */}
+      <div className="bg-surface border border-theme rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3.5">
+          <div className="w-14 h-14 rounded-full border border-theme bg-surface-2 flex items-center justify-center font-black text-lg text-theme shadow-inner">
+            Lvl {level}
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-theme">Financial Habiteer Rank</h3>
+            <p className="text-xs text-muted mt-0.5">Total XP balance: {currentUser?.xp || 0} XP</p>
+          </div>
+        </div>
+        <div className="flex-1 w-full max-w-sm">
+          <div className="flex justify-between text-[10px] font-bold text-muted uppercase mb-1">
+            <span>XP Progress to Level {level + 1}</span>
+            <span>{xpProgress} / 100 XP</span>
+          </div>
+          <div className="w-full bg-surface-2 border border-theme h-2.5 rounded-full overflow-hidden">
+            <div className="bg-income h-full transition-all duration-500" style={{ width: `${xpProgress}%` }} />
+          </div>
+        </div>
       </div>
 
       {/* Stats Summary Panel */}
@@ -127,14 +175,14 @@ export default function HabitTracker() {
         </div>
         <div className="bg-surface border border-theme rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-semibold tracking-widest text-muted uppercase">Total Streaks</p>
+            <p className="text-[10px] font-semibold tracking-widest text-muted uppercase">Active Streak points</p>
             <p className="text-xl font-bold text-income mt-1 mono">🔥 {stats.activeStreaks} Days</p>
           </div>
           <span className="text-2xl">⚡</span>
         </div>
         <div className="bg-surface border border-theme rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-semibold tracking-widest text-muted uppercase">Week Completion Rate</p>
+            <p className="text-[10px] font-semibold tracking-widest text-muted uppercase">Week Compliance</p>
             <p className="text-xl font-bold text-theme mt-1 mono">{stats.avgCompletionRate.toFixed(0)}%</p>
           </div>
           <span className="text-2xl">📈</span>
@@ -197,7 +245,7 @@ export default function HabitTracker() {
           ) : (
             <div className="divide-y divide-theme">
               {userHabits.map((habit) => (
-                <div key={habit.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 first:pt-0 last:pb-0">
+                <div key={habit._id || habit.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 first:pt-0 last:pb-0">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="text-xs font-bold text-theme truncate">{habit.name}</h3>
@@ -222,7 +270,7 @@ export default function HabitTracker() {
                       return (
                         <button
                           key={d.dateStr}
-                          onClick={() => handleToggle(habit.id, d.dateStr)}
+                          onClick={() => handleToggle(habit._id || habit.id, d.dateStr)}
                           className={`w-9 h-11 flex flex-col items-center justify-center rounded-lg border transition-all hover:scale-105 shrink-0
                             ${completed 
                               ? 'bg-income/10 border-income text-income font-bold' 
@@ -237,7 +285,7 @@ export default function HabitTracker() {
                       );
                     })}
                     <button
-                      onClick={() => deleteHabit(habit.id)}
+                      onClick={() => deleteHabit(habit._id || habit.id)}
                       className="w-7 h-11 flex items-center justify-center rounded-lg border border-theme bg-surface-2 hover:border-expense hover:text-expense transition-all shrink-0"
                       title="Delete Habit"
                     >
@@ -253,7 +301,15 @@ export default function HabitTracker() {
         <div className="space-y-6">
           {/* Quick Presets */}
           <div className="bg-surface border border-theme rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-theme mb-1">Habit Presets</h2>
+            <div className="flex justify-between items-center mb-1">
+              <h2 className="text-sm font-semibold text-theme">Habit Presets</h2>
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="text-[10px] text-muted underline hover:text-theme"
+              >
+                Custom Habit
+              </button>
+            </div>
             <p className="text-xs text-muted mb-4">Click to instantly add financial habits</p>
             <div className="space-y-2">
               {PRESETS.map((preset) => {
@@ -271,6 +327,32 @@ export default function HabitTracker() {
                     </div>
                     <span className="text-muted">{alreadyExists ? 'Added' : '➕'}</span>
                   </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Badges Cabinet */}
+          <div className="bg-surface border border-theme rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-theme mb-1">Badges Cabinet</h2>
+            <p className="text-xs text-muted mb-4 font-normal">Achievements unlocked via streak milestones</p>
+            <div className="grid grid-cols-1 gap-2.5">
+              {BADGES.map((b) => {
+                const unlocked = currentUser?.badges?.includes(b.name);
+                return (
+                  <div
+                    key={b.name}
+                    className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all
+                      ${unlocked 
+                        ? 'bg-yellow-500/5 border-yellow-500/20 opacity-100' 
+                        : 'bg-surface-2 border-theme opacity-45'}`}
+                  >
+                    <span className={`text-2xl ${unlocked ? '' : 'grayscale'}`}>{b.emoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-xs font-bold ${unlocked ? 'text-theme' : 'text-muted'}`}>{b.name}</p>
+                      <p className="text-[10px] text-muted truncate mt-0.5">{b.desc}</p>
+                    </div>
+                  </div>
                 );
               })}
             </div>

@@ -1,307 +1,60 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import {
-  mockTransactions,
-  mockUsers,
-  mockHabits,
-  mockGoals,
-  mockAssets,
-  mockFeedback
-} from '../data/mockData';
 
-// Helper to calculate daily habits streak
-const calculateStreak = (history) => {
-  if (!history || history.length === 0) return 0;
-  
-  const sorted = [...new Set(history)].sort((a, b) => b.localeCompare(a));
-  const todayStr = new Date().toISOString().slice(0, 10);
-  
-  const tempDate = new Date();
-  tempDate.setDate(tempDate.getDate() - 1);
-  const yesterdayStr = tempDate.toISOString().slice(0, 10);
+const API_URL = 'http://localhost:5000/api';
 
-  // If today or yesterday is not in the list, streak is broken (0)
-  if (sorted[0] !== todayStr && sorted[0] !== yesterdayStr) {
-    return 0;
+const apiCall = async (endpoint, method = 'GET', body = null, token = null) => {
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
-
-  let streak = 0;
-  let currentDateToCheck = new Date(sorted[0]);
-
-  for (let i = 0; i < sorted.length; i++) {
-    const expectedStr = currentDateToCheck.toISOString().slice(0, 10);
-    if (sorted.includes(expectedStr)) {
-      streak++;
-      currentDateToCheck.setDate(currentDateToCheck.getDate() - 1);
-    } else {
-      break;
-    }
+  const config = {
+    method,
+    headers,
+  };
+  if (body) {
+    config.body = JSON.stringify(body);
   }
-  return streak;
+  const res = await fetch(`${API_URL}${endpoint}`, config);
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Request failed');
+  }
+  return data;
 };
 
 export const useStore = create(
   persist(
     (set, get) => ({
-      // Core Data
-      transactions: mockTransactions,
-      isLoading: true,
-      setIsLoading: (val) => set({ isLoading: val }),
-
-      // Users & Auth
-      users: mockUsers,
-      currentUser: null, // Starts as null to trigger login screen
-      login: (email, password) => {
-        const user = get().users.find((u) => u.email === email && u.password === password);
-        if (!user) return { success: false, error: 'Invalid email or password' };
-        if (user.status === 'Suspended') return { success: false, error: 'Account suspended. Contact admin.' };
-        
-        set({ currentUser: user, role: user.role });
-        return { success: true };
-      },
-      register: (name, email, password) => {
-        const exists = get().users.some((u) => u.email === email);
-        if (exists) return { success: false, error: 'Email already registered' };
-
-        const newUser = {
-          id: `usr-${Date.now()}`,
-          name,
-          email,
-          password,
-          targetSavingsRate: 20,
-          role: 'viewer', // default role
-          status: 'Active',
-          avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}`,
-          joinedDate: new Date().toISOString().slice(0, 10),
-        };
-
-        set((s) => ({
-          users: [...s.users, newUser],
-          currentUser: newUser,
-          role: 'viewer',
-        }));
-        return { success: true };
-      },
-      logout: () => {
-        set({ currentUser: null, activePage: 'dashboard' });
-      },
-      updateProfile: (updatedData) => {
-        set((s) => {
-          if (!s.currentUser) return {};
-          const updatedUser = { ...s.currentUser, ...updatedData };
-          return {
-            currentUser: updatedUser,
-            users: s.users.map((u) => (u.id === s.currentUser.id ? updatedUser : u)),
-          };
-        });
-      },
-      toggleUserStatus: (userId) => {
-        set((s) => ({
-          users: s.users.map((u) => {
-            if (u.id === userId) {
-              const nextStatus = u.status === 'Active' ? 'Suspended' : 'Active';
-              // If we suspend the current user, log them out
-              if (userId === s.currentUser?.id && nextStatus === 'Suspended') {
-                setTimeout(() => get().logout(), 0);
-              }
-              return { ...u, status: nextStatus };
-            }
-            return u;
-          }),
-        }));
-      },
-      changeUserRole: (userId, newRole) => {
-        set((s) => {
-          const updatedUsers = s.users.map((u) => (u.id === userId ? { ...u, role: newRole } : u));
-          const updatedCurrentUser = s.currentUser?.id === userId ? { ...s.currentUser, role: newRole } : s.currentUser;
-          return {
-            users: updatedUsers,
-            currentUser: updatedCurrentUser,
-            role: updatedCurrentUser?.role || s.role,
-          };
-        });
-      },
-
-      // Habits Tracking
-      habits: mockHabits,
-      addHabit: (name, frequency) => {
-        const userId = get().currentUser?.id || 'usr-1';
-        const newHabit = {
-          id: `hab-${Date.now()}`,
-          userId,
-          name,
-          frequency,
-          streak: 0,
-          lastCompleted: '',
-          completionHistory: [],
-        };
-        set((s) => ({ habits: [...s.habits, newHabit] }));
-      },
-      toggleHabitCompletion: (id, dateStr) => {
-        set((s) => ({
-          habits: s.habits.map((h) => {
-            if (h.id === id) {
-              const history = [...h.completionHistory];
-              const idx = history.indexOf(dateStr);
-              if (idx > -1) {
-                history.splice(idx, 1);
-              } else {
-                history.push(dateStr);
-              }
-              const newStreak = calculateStreak(history);
-              const sortedHistory = [...history].sort();
-              const lastCompleted = sortedHistory[sortedHistory.length - 1] || '';
-
-              return {
-                ...h,
-                completionHistory: sortedHistory,
-                streak: newStreak,
-                lastCompleted,
-              };
-            }
-            return h;
-          }),
-        }));
-      },
-      deleteHabit: (id) => {
-        set((s) => ({ habits: s.habits.filter((h) => h.id !== id) }));
-      },
-
-      // Savings Goals
-      goals: mockGoals,
-      addGoal: (name, targetAmount, targetDate, category) => {
-        const userId = get().currentUser?.id || 'usr-1';
-        const newGoal = {
-          id: `goal-${Date.now()}`,
-          userId,
-          name,
-          targetAmount: Number(targetAmount),
-          currentAmount: 0,
-          targetDate,
-          category,
-          contributions: [],
-        };
-        set((s) => ({ goals: [...s.goals, newGoal] }));
-      },
-      addContribution: (goalId, amount, note) => {
-        const parsedAmt = Number(amount);
-        if (isNaN(parsedAmt) || parsedAmt <= 0) return;
-
-        set((s) => {
-          // Check if we have enough balance to contribute
-          const income = s.transactions.filter((t) => t.type === 'income').reduce((a, t) => a + t.amount, 0);
-          const expenses = s.transactions.filter((t) => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
-          const currentBalance = income - expenses;
-
-          if (currentBalance < parsedAmt) {
-            // Can still contribute but let's log it as an expense to balance check or just allow mock deficit
-          }
-
-          // Create an automatic transaction record as an expense category 'Goal Contribution'
-          const autoTx = {
-            id: `tx-goal-${Date.now()}`,
-            date: new Date().toISOString().slice(0, 10),
-            amount: parsedAmt,
-            category: 'Other',
-            type: 'expense',
-            note: `Savings Goal Contribution: ${s.goals.find(g => g.id === goalId)?.name || 'Goal'}`,
-          };
-
-          return {
-            transactions: [autoTx, ...s.transactions],
-            goals: s.goals.map((g) => {
-              if (g.id === goalId) {
-                const contribution = {
-                  id: `contrib-${Date.now()}`,
-                  amount: parsedAmt,
-                  date: new Date().toISOString().slice(0, 10),
-                  note: note || 'Goal deposit',
-                };
-                return {
-                  ...g,
-                  currentAmount: g.currentAmount + parsedAmt,
-                  contributions: [contribution, ...g.contributions],
-                };
-              }
-              return g;
-            }),
-          };
-        });
-      },
-      deleteGoal: (id) => {
-        set((s) => ({ goals: s.goals.filter((g) => g.id !== id) }));
-      },
-
-      // Wealth Assets & Liabilities
-      assets: mockAssets,
-      addAsset: (name, category, amount) => {
-        const userId = get().currentUser?.id || 'usr-1';
-        const newAsset = {
-          id: `ast-${Date.now()}`,
-          userId,
-          name,
-          category,
-          amount: Number(amount),
-          lastUpdated: new Date().toISOString().slice(0, 10),
-        };
-        set((s) => ({ assets: [...s.assets, newAsset] }));
-      },
-      updateAsset: (id, amount) => {
-        set((s) => ({
-          assets: s.assets.map((a) =>
-            a.id === id ? { ...a, amount: Number(amount), lastUpdated: new Date().toISOString().slice(0, 10) } : a
-          ),
-        }));
-      },
-      deleteAsset: (id) => {
-        set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }));
-      },
-
-      // User Feedback system
-      feedback: mockFeedback,
-      submitFeedback: (type, message) => {
-        const user = get().currentUser || { name: 'Anonymous', id: 'anon' };
-        const newFb = {
-          id: `fb-${Date.now()}`,
-          userId: user.id,
-          userName: user.name,
-          type,
-          message,
-          date: new Date().toISOString().slice(0, 10),
-          status: 'pending',
-          reply: '',
-        };
-        set((s) => ({ feedback: [newFb, ...s.feedback] }));
-      },
-      resolveFeedback: (id, reply) => {
-        set((s) => ({
-          feedback: s.feedback.map((f) =>
-            f.id === id ? { ...f, status: 'resolved', reply } : f
-          ),
-        }));
-      },
-
-      // Client Role Toggling (still supported, handles top bar compatibility)
-      role: 'viewer', // 'viewer' | 'admin'
-      setRole: (role) => set({ role }),
-
-      // Currency settings
+      // State
+      token: null,
+      currentUser: null,
+      role: 'viewer',
       currency: 'INR',
-      setCurrency: (currency) => set({ currency }),
-
-      // Theme & Effects
       darkMode: false,
-      toggleDarkMode: () => {
-        const next = !get().darkMode;
-        set({ darkMode: next });
-        document.documentElement.classList.toggle('dark', next);
-      },
       rippleEffect: false,
-      toggleRippleEffect: () => set((s) => ({ rippleEffect: !s.rippleEffect })),
-
-      // Navigation
       activePage: 'dashboard',
-      setActivePage: (page) => set({ activePage: page }),
+      isLoading: false,
+
+      // Data Lists
+      transactions: [],
+      habits: [],
+      goals: [],
+      assets: [],
+      feedback: [],
+      netWorthHistory: [],
+      budgetLimits: {},
+      
+      // Admin lists
+      adminUsers: [],
+      adminFeedback: [],
+
+      // Alerting & Gamification notifications
+      budgetAlert: null,
+      badgeUnlocked: null,
+      xpGained: null,
 
       // Filters
       filters: {
@@ -311,47 +64,435 @@ export const useStore = create(
         sortBy: 'date',
         sortDir: 'desc',
       },
+
       setFilter: (key, value) =>
         set((s) => ({ filters: { ...s.filters, [key]: value } })),
       resetFilters: () =>
         set({ filters: { search: '', type: 'all', category: 'all', sortBy: 'date', sortDir: 'desc' } }),
 
-      // Modal
+      // Modal State
       modal: null, // null | { mode: 'add' | 'edit', tx: object | null }
       openModal: (mode, tx = null) => set({ modal: { mode, tx } }),
       closeModal: () => set({ modal: null }),
 
+      // Actions
+      setIsLoading: (val) => set({ isLoading: val }),
+      setCurrency: (currency) => set({ currency }),
+      setActivePage: (activePage) => {
+        set({ activePage });
+        // Auto refresh data when page switches
+        get().loadData();
+      },
+
+      toggleDarkMode: () => {
+        const next = !get().darkMode;
+        set({ darkMode: next });
+        document.documentElement.classList.toggle('dark', next);
+      },
+      toggleRippleEffect: () => set((s) => ({ rippleEffect: !s.rippleEffect })),
+
+      // Clear alerts
+      clearAlerts: () => set({ budgetAlert: null, badgeUnlocked: null, xpGained: null }),
+
+      // Authentication
+      login: async (email, password) => {
+        try {
+          set({ isLoading: true });
+          const data = await apiCall('/auth/login', 'POST', { email, password });
+          set({
+            token: data.token,
+            currentUser: data.user,
+            role: data.user.role,
+            isLoading: false,
+          });
+          await get().loadData();
+          return { success: true };
+        } catch (err) {
+          set({ isLoading: false });
+          return { success: false, error: err.message };
+        }
+      },
+
+      register: async (name, email, password) => {
+        try {
+          set({ isLoading: true });
+          const data = await apiCall('/auth/register', 'POST', { name, email, password });
+          set({
+            token: data.token,
+            currentUser: data.user,
+            role: data.user.role,
+            isLoading: false,
+          });
+          await get().loadData();
+          return { success: true };
+        } catch (err) {
+          set({ isLoading: false });
+          return { success: false, error: err.message };
+        }
+      },
+
+      logout: () => {
+        set({
+          token: null,
+          currentUser: null,
+          role: 'viewer',
+          activePage: 'dashboard',
+          transactions: [],
+          habits: [],
+          goals: [],
+          assets: [],
+          feedback: [],
+          netWorthHistory: [],
+          budgetLimits: {},
+          adminUsers: [],
+          adminFeedback: [],
+        });
+      },
+
+      updateProfile: async (profileData) => {
+        try {
+          const token = get().token;
+          const updatedUser = await apiCall('/auth/profile', 'POST', profileData, token);
+          set({ currentUser: updatedUser });
+          return { success: true };
+        } catch (err) {
+          return { success: false, error: err.message };
+        }
+      },
+
+      changePassword: async (currentPassword, newPassword) => {
+        try {
+          const token = get().token;
+          await apiCall('/auth/change-password', 'POST', { currentPassword, newPassword }, token);
+          return { success: true };
+        } catch (err) {
+          return { success: false, error: err.message };
+        }
+      },
+
+      forgotPassword: async (email) => {
+        try {
+          await apiCall('/auth/forgot-password', 'POST', { email });
+          return { success: true };
+        } catch (err) {
+          return { success: false, error: err.message };
+        }
+      },
+
+      resetPassword: async (token, newPassword) => {
+        try {
+          await apiCall('/auth/reset-password', 'POST', { token, newPassword });
+          return { success: true };
+        } catch (err) {
+          return { success: false, error: err.message };
+        }
+      },
+
+      // Fetch all user specific details from backend
+      loadData: async () => {
+        const token = get().token;
+        if (!token) return;
+
+        try {
+          set({ isLoading: true });
+
+          // Load core data sets concurrently
+          const [txData, habitData, goalData, assetData, nwHistory, fbData, limits] = await Promise.all([
+            apiCall('/transactions?limit=100', 'GET', null, token),
+            apiCall('/habits', 'GET', null, token),
+            apiCall('/goals', 'GET', null, token),
+            apiCall('/wealth/assets', 'GET', null, token),
+            apiCall('/wealth/history', 'GET', null, token),
+            apiCall('/feedback', 'GET', null, token),
+            apiCall('/transactions/budget', 'GET', null, token),
+          ]);
+
+          set({
+            transactions: txData.transactions || [],
+            habits: habitData || [],
+            goals: goalData || [],
+            assets: assetData || [],
+            netWorthHistory: nwHistory || [],
+            feedback: fbData || [],
+            budgetLimits: limits || {},
+            isLoading: false,
+          });
+
+          // Fetch Admin data sets if admin role
+          if (get().role === 'admin') {
+            const [adminUsersList, adminFbList] = await Promise.all([
+              apiCall('/feedback/admin/users', 'GET', null, token),
+              apiCall('/feedback/admin/all', 'GET', null, token),
+            ]);
+            set({
+              adminUsers: adminUsersList || [],
+              adminFeedback: adminFbList || [],
+            });
+          }
+        } catch (err) {
+          set({ isLoading: false });
+          console.error('Failed to load portfolio statistics:', err.message);
+        }
+      },
+
       // Transactions CRUD
-      addTransaction: (tx) =>
-        set((s) => ({ transactions: [tx, ...s.transactions] })),
-      updateTransaction: (id, updated) =>
-        set((s) => ({
-          transactions: s.transactions.map((t) => (t.id === id ? { ...t, ...updated } : t)),
-        })),
-      deleteTransaction: (id) =>
-        set((s) => ({ transactions: s.transactions.filter((t) => t.id !== id) })),
+      addTransaction: async (txData) => {
+        try {
+          const token = get().token;
+          const data = await apiCall('/transactions', 'POST', txData, token);
+          set((s) => ({
+            transactions: [data.transaction, ...s.transactions],
+            budgetAlert: data.alert || null,
+          }));
+          await get().loadData();
+          return { success: true };
+        } catch (err) {
+          return { success: false, error: err.message };
+        }
+      },
+
+      updateTransaction: async (id, updatedData) => {
+        try {
+          const token = get().token;
+          const updated = await apiCall(`/transactions/${id}`, 'PUT', updatedData, token);
+          set((s) => ({
+            transactions: s.transactions.map((t) => (t._id === id ? updated : t)),
+          }));
+          await get().loadData();
+          return { success: true };
+        } catch (err) {
+          return { success: false, error: err.message };
+        }
+      },
+
+      deleteTransaction: async (id) => {
+        try {
+          const token = get().token;
+          await apiCall(`/transactions/${id}`, 'DELETE', null, token);
+          set((s) => ({
+            transactions: s.transactions.filter((t) => t._id !== id),
+          }));
+          await get().loadData();
+          return { success: true };
+        } catch (err) {
+          return { success: false, error: err.message };
+        }
+      },
+
+      setBudgetLimit: async (category, limit) => {
+        try {
+          const token = get().token;
+          const data = await apiCall('/transactions/budget', 'POST', { category, limit }, token);
+          set({ budgetLimits: data.budgetLimits });
+          return { success: true };
+        } catch (err) {
+          return { success: false, error: err.message };
+        }
+      },
+
+      // Habits Actions
+      addHabit: async (name, frequency) => {
+        try {
+          const token = get().token;
+          const newHabit = await apiCall('/habits', 'POST', { name, frequency }, token);
+          set((s) => ({ habits: [...s.habits, newHabit] }));
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      toggleHabitCompletion: async (id, dateStr) => {
+        try {
+          const token = get().token;
+          const data = await apiCall(`/habits/toggle/${id}`, 'POST', { dateStr }, token);
+          
+          set((s) => {
+            const updatedHabits = s.habits.map((h) => (h._id === id ? data.habit : h));
+            const updatedUser = s.currentUser
+              ? { ...s.currentUser, xp: data.xp, badges: data.badges }
+              : null;
+            return {
+              habits: updatedHabits,
+              currentUser: updatedUser,
+              badgeUnlocked: data.badgeUnlocked || null,
+              xpGained: data.xpGained || null,
+            };
+          });
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      deleteHabit: async (id) => {
+        try {
+          const token = get().token;
+          await apiCall(`/habits/${id}`, 'DELETE', null, token);
+          set((s) => ({ habits: s.habits.filter((h) => h._id !== id) }));
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      // Goals Actions
+      addGoal: async (name, targetAmount, targetDate, category) => {
+        try {
+          const token = get().token;
+          const newGoal = await apiCall('/goals', 'POST', { name, targetAmount, targetDate, category }, token);
+          set((s) => ({ goals: [...s.goals, newGoal] }));
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      addContribution: async (goalId, amount, note) => {
+        try {
+          const token = get().token;
+          const data = await apiCall(`/goals/contribute/${goalId}`, 'POST', { amount, note }, token);
+          set((s) => ({
+            goals: s.goals.map((g) => (g._id === goalId ? data.goal : g)),
+            transactions: [data.transaction, ...s.transactions],
+          }));
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      deleteGoal: async (id) => {
+        try {
+          const token = get().token;
+          await apiCall(`/goals/${id}`, 'DELETE', null, token);
+          set((s) => ({ goals: s.goals.filter((g) => g._id !== id) }));
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      // Wealth Assets Actions
+      addAsset: async (name, category, amount) => {
+        try {
+          const token = get().token;
+          const newAsset = await apiCall('/wealth/assets', 'POST', { name, category, amount }, token);
+          set((s) => ({ assets: [...s.assets, newAsset] }));
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      updateAsset: async (id, amount) => {
+        try {
+          const token = get().token;
+          const updated = await apiCall(`/wealth/assets/${id}`, 'PUT', { amount }, token);
+          set((s) => ({
+            assets: s.assets.map((a) => (a._id === id ? updated : a)),
+          }));
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      deleteAsset: async (id) => {
+        try {
+          const token = get().token;
+          await apiCall(`/wealth/assets/${id}`, 'DELETE', null, token);
+          set((s) => ({ assets: s.assets.filter((a) => a._id !== id) }));
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      // Support Feedback Actions
+      submitFeedback: async (type, message) => {
+        try {
+          const token = get().token;
+          const newFb = await apiCall('/feedback', 'POST', { type, message }, token);
+          set((s) => ({ feedback: [newFb, ...s.feedback] }));
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      resolveFeedback: async (id, reply) => {
+        try {
+          const token = get().token;
+          const updated = await apiCall(`/feedback/admin/resolve/${id}`, 'POST', { reply }, token);
+          set((s) => ({
+            adminFeedback: s.adminFeedback.map((f) => (f._id === id ? updated : f)),
+          }));
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      toggleUserStatus: async (userId) => {
+        try {
+          const token = get().token;
+          const updated = await apiCall(`/feedback/admin/users/${userId}/status`, 'POST', null, token);
+          set((s) => ({
+            adminUsers: s.adminUsers.map((u) => (u._id === userId ? { ...u, status: updated.status } : u)),
+          }));
+          
+          // Log out current user if suspended
+          if (userId === get().currentUser?.id && updated.status === 'Suspended') {
+            get().logout();
+          } else {
+            await get().loadData();
+          }
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
+
+      changeUserRole: async (userId, newRole) => {
+        try {
+          const token = get().token;
+          const updated = await apiCall(`/feedback/admin/users/${userId}/role`, 'POST', { role: newRole }, token);
+          set((s) => {
+            const updatedUsers = s.adminUsers.map((u) => (u._id === userId ? { ...u, role: updated.role } : u));
+            const updatedCurrentUser = s.currentUser?.id === userId ? { ...s.currentUser, role: updated.role } : s.currentUser;
+            return {
+              adminUsers: updatedUsers,
+              currentUser: updatedCurrentUser,
+              role: updatedCurrentUser?.role || s.role,
+            };
+          });
+          await get().loadData();
+        } catch (err) {
+          console.error(err.message);
+        }
+      },
     }),
     {
       name: 'finance-store',
       partialize: (s) => ({
-        transactions: s.transactions,
-        darkMode: s.darkMode,
+        token: s.token,
+        currentUser: s.currentUser,
         role: s.role,
         currency: s.currency,
+        darkMode: s.darkMode,
         rippleEffect: s.rippleEffect,
-        users: s.users,
-        currentUser: s.currentUser,
-        habits: s.habits,
-        goals: s.goals,
-        assets: s.assets,
-        feedback: s.feedback,
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.darkMode) {
           document.documentElement.classList.add('dark');
         }
+        // Load server data upon local rehydration
+        if (state?.token) {
+          setTimeout(() => state.loadData(), 100);
+        }
       },
     }
   )
 );
+
 

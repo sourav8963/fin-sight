@@ -141,3 +141,24 @@
     }
   }
 }
+
+@media print {
+  aside, nav, header, button, .no-print, .role-switcher {
+    display: none !important;
+  }
+  main, .print-full {
+    background: transparent !important;
+    color: black !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .bg-surface, .bg-surface-2 {
+    background-color: #fff !important;
+    border-color: #ddd !important;
+    box-shadow: none !important;
+  }
+}
+
