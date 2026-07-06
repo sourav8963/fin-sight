@@ -154,6 +154,24 @@ export default function Dashboard() {
   const toggleHabitCompletion = useStore((s) => s.toggleHabitCompletion);
   const setActivePage = useStore((s) => s.setActivePage);
 
+  // Bills and Reminders State & Actions
+  const bills = useStore((s) => s.bills);
+  const payBill = useStore((s) => s.payBill);
+  const deleteBill = useStore((s) => s.deleteBill);
+  const addBill = useStore((s) => s.addBill);
+
+  const [showBillForm, setShowBillForm] = useState(false);
+  const [billForm, setBillForm] = useState({ name: '', amount: '', dueDate: '', category: 'Utilities' });
+
+  const handleCreateBill = async (e) => {
+    e.preventDefault();
+    const res = await addBill(billForm);
+    if (res.success) {
+      setBillForm({ name: '', amount: '', dueDate: '', category: 'Utilities' });
+      setShowBillForm(false);
+    }
+  };
+
   const transactions = useMemo(() => {
     return allTransactions.filter((t) => !t.userId || t.userId === currentUser?.id);
   }, [allTransactions, currentUser]);
@@ -484,6 +502,121 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Reminders & Bills Tracker */}
+      <div className="bg-surface border border-theme rounded-xl p-5 slide-up stagger-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-sm font-semibold text-theme tracking-tight">Reminders & Bill Payments</h2>
+            <p className="text-xs text-muted mt-0.5">Stay on top of upcoming expenses to avoid penalties</p>
+          </div>
+          <button
+            onClick={() => setShowBillForm(!showBillForm)}
+            className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border border-theme hover:bg-surface-2 rounded text-theme"
+          >
+            {showBillForm ? 'Cancel' : '➕ Add Bill'}
+          </button>
+        </div>
+
+        {/* Inline Add Bill Form */}
+        {showBillForm && (
+          <form onSubmit={handleCreateBill} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-3.5 border border-theme bg-surface-2 rounded-xl mb-4 text-xs">
+            <div>
+              <label className="text-[9px] uppercase tracking-wider text-muted font-bold block mb-1">Bill Name</label>
+              <input
+                type="text"
+                required
+                value={billForm.name}
+                onChange={(e) => setBillForm({ ...billForm, name: e.target.value })}
+                className="w-full px-2 py-1.5 rounded border border-theme bg-surface text-theme outline-none"
+                placeholder="e.g. Electricity"
+              />
+            </div>
+            <div>
+              <label className="text-[9px] uppercase tracking-wider text-muted font-bold block mb-1">Amount</label>
+              <input
+                type="number"
+                required
+                min="1"
+                value={billForm.amount}
+                onChange={(e) => setBillForm({ ...billForm, amount: e.target.value })}
+                className="w-full px-2 py-1.5 rounded border border-theme bg-surface text-theme outline-none"
+                placeholder="e.g. 50"
+              />
+            </div>
+            <div>
+              <label className="text-[9px] uppercase tracking-wider text-muted font-bold block mb-1">Due Date</label>
+              <input
+                type="date"
+                required
+                value={billForm.dueDate}
+                onChange={(e) => setBillForm({ ...billForm, dueDate: e.target.value })}
+                className="w-full px-2 py-1.5 rounded border border-theme bg-surface text-theme outline-none"
+              />
+            </div>
+            <div className="flex items-end">
+              <button
+                type="submit"
+                className="w-full py-1.5 bg-theme text-bg rounded font-semibold uppercase tracking-wider text-[10px]"
+                style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}
+              >
+                Create Reminder
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Bills list */}
+        {bills.length === 0 ? (
+          <p className="text-xs text-muted py-4 text-center">No upcoming bills scheduled.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {bills.map((bill) => (
+              <div
+                key={bill._id || bill.id}
+                className={`p-3.5 border rounded-xl flex flex-col justify-between
+                  ${bill.status === 'paid' 
+                    ? 'border-income/20 bg-income/5 opacity-60' 
+                    : 'border-theme bg-surface-2'}`}
+              >
+                <div>
+                  <div className="flex justify-between items-start">
+                    <span className="font-semibold text-theme text-xs">{bill.name}</span>
+                    <span className={`px-2 py-0.5 rounded text-[8px] uppercase font-bold tracking-wider
+                      ${bill.status === 'paid' ? 'bg-income text-income' : 'bg-expense text-expense animate-pulse'}`}>
+                      {bill.status}
+                    </span>
+                  </div>
+                  <p className="text-lg font-bold text-theme mt-1.5 mono">
+                    {formatCurrency(bill.amount, currency)}
+                  </p>
+                  <p className="text-[10px] text-muted mt-1">
+                    Due Date: <span className="mono font-semibold">{bill.dueDate}</span>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 mt-4 pt-2 border-t border-theme/30 no-print">
+                  {bill.status === 'unpaid' && (
+                    <button
+                      onClick={() => payBill(bill._id || bill.id)}
+                      className="flex-1 py-1 rounded text-[10px] font-bold bg-income text-white hover:opacity-90 transition-all"
+                    >
+                      Mark Paid
+                    </button>
+                  )}
+                  <button
+                    onClick={() => deleteBill(bill._id || bill.id)}
+                    className="p-1 border border-theme text-muted hover:border-expense hover:text-expense rounded transition-all text-xs"
+                    title="Delete Bill Reminder"
+                  >
+                    🗑
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

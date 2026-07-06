@@ -3,6 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
+import swaggerJsDoc from 'swagger-jsdoc';
 
 // Route imports
 import authRoutes from './routes/auth.js';
@@ -11,11 +14,55 @@ import habitRoutes from './routes/habits.js';
 import goalRoutes from './routes/goals.js';
 import wealthRoutes from './routes/wealth.js';
 import feedbackRoutes from './routes/feedback.js';
+import billRoutes from './routes/bills.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Helmet HTTP Security Headers Shield
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Disabled for local development to allow inline Swagger JS/CSS assets
+  })
+);
+
+// Swagger Documentation Configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'FinSight API Documentation',
+      version: '1.0.0',
+      description: 'Production-ready REST API documentation and interactive test sandboxes for fin-sight.',
+    },
+    servers: [
+      {
+        url: 'http://localhost:5000',
+        description: 'Local Development Server',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+  },
+  apis: ['./routes/*.js', './server.js'],
+};
+
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Rate limiting security configuration
 const limiter = rateLimit({
@@ -106,6 +153,7 @@ app.use('/api/habits', habitRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/wealth', wealthRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/bills', billRoutes);
 
 // Server status endpoint
 app.get('/health', (req, res) => {

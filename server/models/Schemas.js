@@ -72,9 +72,19 @@ const FeedbackSchema = new mongoose.Schema({
   reply: { type: String, default: '' }
 });
 
+const BillSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  name: { type: String, required: true },
+  amount: { type: Number, required: true },
+  dueDate: { type: String, required: true }, // yyyy-MM-dd
+  category: { type: String, default: 'Utilities' },
+  status: { type: String, enum: ['unpaid', 'paid'], default: 'unpaid' }
+});
+
 export const User = mongoose.model('User', UserSchema);
 export const Transaction = mongoose.model('Transaction', TransactionSchema);
 export const Habit = mongoose.model('Habit', HabitSchema);
 export const Goal = mongoose.model('Goal', GoalSchema);
 export const Asset = mongoose.model('Asset', AssetSchema);
 export const Feedback = mongoose.model('Feedback', FeedbackSchema);
+export const Bill = mongoose.model('Bill', BillSchema);

@@ -49,3 +49,45 @@ test('JWT Authorization Token Signatures', async (t) => {
     }, /invalid signature/, 'Verification should throw error on invalid signature');
   });
 });
+
+test('Budget Limit Enforcement Logic', (t) => {
+  const evaluateBudgetLimit = (category, amount, limits, currentSpent) => {
+    const limit = limits[category] || 0;
+    if (limit > 0 && currentSpent + amount > limit) {
+      return { warning: true, message: `Budget limit for ${category} exceeded!` };
+    }
+    return { warning: false };
+  };
+
+  const limits = { Food: 200, Utilities: 150 };
+
+  const resultOk = evaluateBudgetLimit('Food', 50, limits, 100);
+  assert.strictEqual(resultOk.warning, false, 'Should not exceed budget if within limits');
+
+  const resultExceeded = evaluateBudgetLimit('Food', 120, limits, 100);
+  assert.strictEqual(resultExceeded.warning, true, 'Should exceed budget if sum exceeds limit');
+  assert.match(resultExceeded.message, /Food exceeded/, 'Should provide descriptive warning message');
+});
+
+test('Bill Payment Auto-Ledger Generation', (t) => {
+  const payBillAndCreateTx = (bill) => {
+    if (bill.status === 'paid') throw new Error('Already paid');
+    const updatedBill = { ...bill, status: 'paid' };
+    const transaction = {
+      date: new Date().toISOString().slice(0, 10),
+      amount: bill.amount,
+      category: bill.category,
+      type: 'expense',
+      note: `Bill Paid: ${bill.name}`
+    };
+    return { bill: updatedBill, transaction };
+  };
+
+  const bill = { name: 'Rent', amount: 800, category: 'Rent', status: 'unpaid' };
+  const res = payBillAndCreateTx(bill);
+
+  assert.strictEqual(res.bill.status, 'paid', 'Status should be changed to paid');
+  assert.strictEqual(res.transaction.amount, 800, 'Transaction amount should match bill amount');
+  assert.strictEqual(res.transaction.type, 'expense', 'Transaction type should be expense');
+});
+

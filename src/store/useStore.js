@@ -54,6 +54,7 @@ export const useStore = create(
       goals: [],
       assets: [],
       feedback: [],
+      bills: [],
       netWorthHistory: [],
       budgetLimits: {},
       
@@ -218,7 +219,7 @@ export const useStore = create(
           set({ isLoading: true });
 
           // Load core data sets concurrently
-          const [txData, habitData, goalData, assetData, nwHistory, fbData, limits] = await Promise.all([
+          const [txData, habitData, goalData, assetData, nwHistory, fbData, limits, billData] = await Promise.all([
             apiCall('/transactions?limit=100', 'GET', null, token),
             apiCall('/habits', 'GET', null, token),
             apiCall('/goals', 'GET', null, token),
@@ -226,6 +227,7 @@ export const useStore = create(
             apiCall('/wealth/history', 'GET', null, token),
             apiCall('/feedback', 'GET', null, token),
             apiCall('/transactions/budget', 'GET', null, token),
+            apiCall('/bills', 'GET', null, token),
           ]);
 
           set({
@@ -236,6 +238,7 @@ export const useStore = create(
             netWorthHistory: nwHistory || [],
             feedback: fbData || [],
             budgetLimits: limits || {},
+            bills: billData || [],
             isLoading: false,
           });
 
@@ -490,6 +493,48 @@ export const useStore = create(
           await get().loadData();
         } catch (err) {
           console.error(err.message);
+        }
+      },
+
+      addBill: async (billData) => {
+        try {
+          const token = get().token;
+          const newBill = await apiCall('/bills', 'POST', billData, token);
+          set((s) => ({ bills: [...s.bills, newBill] }));
+          get().addToast('Bill reminder created successfully!', 'success');
+          return { success: true };
+        } catch (err) {
+          get().addToast(err.message, 'error');
+          return { success: false, error: err.message };
+        }
+      },
+
+      payBill: async (id) => {
+        try {
+          const token = get().token;
+          const res = await apiCall(`/bills/pay/${id}`, 'POST', null, token);
+          set((s) => ({
+            bills: s.bills.map((b) => (b._id === id ? res.bill : b)),
+            transactions: [res.transaction, ...s.transactions]
+          }));
+          get().addToast(`Bill marked as paid! Expense added to ledger.`, 'success');
+          return { success: true };
+        } catch (err) {
+          get().addToast(err.message, 'error');
+          return { success: false, error: err.message };
+        }
+      },
+
+      deleteBill: async (id) => {
+        try {
+          const token = get().token;
+          await apiCall(`/bills/${id}`, 'DELETE', null, token);
+          set((s) => ({ bills: s.bills.filter((b) => b._id !== id) }));
+          get().addToast('Bill reminder deleted.', 'success');
+          return { success: true };
+        } catch (err) {
+          get().addToast(err.message, 'error');
+          return { success: false, error: err.message };
         }
       },
     }),

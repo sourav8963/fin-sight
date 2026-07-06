@@ -1,8 +1,41 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import { User, Habit, Goal, Asset } from '../models/Schemas.js';
 import { auth } from '../middleware/auth.js';
+
+// Setup Nodemailer SMTP Transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+  },
+});
+
+const sendEmailNotification = async (to, subject, text, html) => {
+  try {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.log(`[MOCK EMAIL LOGGED] SMTP credentials omitted in .env.`);
+      console.log(`To: ${to}\nSubject: ${subject}\nBody: ${text}\n-----------------------`);
+      return;
+    }
+
+    await transporter.sendMail({
+      from: `"FinSight Support" <${process.env.SMTP_USER}>`,
+      to,
+      subject,
+      text,
+      html,
+    });
+    console.log(`[EMAIL SENT] Notification delivered successfully to ${to}`);
+  } catch (err) {
+    console.error('[MAILER ERROR] Failed to dispatch email:', err.message);
+  }
+};
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretspecialjwtsecretkey12345!';
@@ -71,8 +104,13 @@ router.post('/register', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '7d' });
 
-    // Log mock verification token in console
-    console.log(`[MOCK EMAIL SENT] Verification URL: http://localhost:5173/api/auth/verify-email/${verificationToken}`);
+    const verifyLink = `http://localhost:5173/api/auth/verify-email/${verificationToken}`;
+    await sendEmailNotification(
+      email,
+      'Verify your FinSight Account',
+      `Welcome to FinSight! Click here to verify your email address: ${verifyLink}`,
+      `<p>Welcome to FinSight!</p><p>Please click the link below to verify your email address:</p><a href="${verifyLink}">Verify Account</a>`
+    );
 
     res.status(201).json({
       token,
@@ -227,7 +265,13 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    console.log(`[MOCK EMAIL SENT] Reset URL: http://localhost:5173/reset-password?token=${resetToken}`);
+    const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
+    await sendEmailNotification(
+      email,
+      'Reset your FinSight Password',
+      `You requested a password reset. Click here to reset your password: ${resetLink}`,
+      `<p>You requested a password reset.</p><p>Please click the link below to reset your password:</p><a href="${resetLink}">Reset Password</a>`
+    );
 
     res.json({ success: true, message: 'Password reset link sent to your email.' });
   } catch (err) {
