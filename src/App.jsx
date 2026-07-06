@@ -21,10 +21,13 @@ export default function App() {
   const currentUser = useStore((s) => s.currentUser);
   const role = useStore((s) => s.role);
 
-  // Apply dark mode class on mount
+  const loadData = useStore((s) => s.loadData);
+
+  // Apply dark mode class on mount and load data
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
-  }, [darkMode]);
+    loadData();
+  }, [darkMode, loadData]);
 
   // Auth gate
   if (!currentUser) {

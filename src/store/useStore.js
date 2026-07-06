@@ -1,42 +1,49 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-const API_URL = 'http://localhost:5000/api';
-
-const apiCall = async (endpoint, method = 'GET', body = null, token = null) => {
-  const headers = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  const config = {
-    method,
-    headers,
-  };
-  if (body) {
-    config.body = JSON.stringify(body);
-  }
-  const res = await fetch(`${API_URL}${endpoint}`, config);
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Request failed');
-  }
-  return data;
-};
+import {
+  mockTransactions,
+  mockUsers,
+  mockHabits,
+  mockGoals,
+  mockAssets,
+  mockFeedback,
+  mockNetWorthHistory
+} from '../data/mockData';
 
 export const useStore = create(
   persist(
     (set, get) => ({
       // State
-      token: null,
-      currentUser: null,
-      role: 'viewer',
+      token: 'mock-jwt-token',
+      currentUser: mockUsers[0], // Defaults to Alex Rivera (Viewer)
+      role: mockUsers[0].role,
       currency: 'INR',
       darkMode: false,
       rippleEffect: false,
       activePage: 'dashboard',
       isLoading: false,
+
+      // Data Lists
+      transactions: mockTransactions,
+      habits: mockHabits,
+      goals: mockGoals,
+      assets: mockAssets,
+      feedback: mockFeedback,
+      bills: [
+        { id: 'bill-1', name: 'Water & Electricity Utility', amount: 120, dueDate: '2026-07-15', category: 'Utilities', status: 'unpaid' },
+        { id: 'bill-2', name: 'High-speed Fiber Internet', amount: 65, dueDate: '2026-07-22', category: 'Utilities', status: 'unpaid' }
+      ],
+      netWorthHistory: mockNetWorthHistory,
+      budgetLimits: { Food: 500, Shopping: 800, Utilities: 300 },
+      
+      // Admin lists
+      adminUsers: mockUsers,
+      adminFeedback: mockFeedback,
+
+      // Alerting & Gamification notifications
+      budgetAlert: null,
+      badgeUnlocked: null,
+      xpGained: null,
 
       // Toasts state
       toasts: [],
@@ -47,25 +54,6 @@ export const useStore = create(
           set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
         }, 3000);
       },
-
-      // Data Lists
-      transactions: [],
-      habits: [],
-      goals: [],
-      assets: [],
-      feedback: [],
-      bills: [],
-      netWorthHistory: [],
-      budgetLimits: {},
-      
-      // Admin lists
-      adminUsers: [],
-      adminFeedback: [],
-
-      // Alerting & Gamification notifications
-      budgetAlert: null,
-      badgeUnlocked: null,
-      xpGained: null,
 
       // Filters
       filters: {
@@ -91,7 +79,6 @@ export const useStore = create(
       setCurrency: (currency) => set({ currency }),
       setActivePage: (activePage) => {
         set({ activePage });
-        // Auto refresh data when page switches
         get().loadData();
       },
 
@@ -105,18 +92,32 @@ export const useStore = create(
       // Clear alerts
       clearAlerts: () => set({ budgetAlert: null, badgeUnlocked: null, xpGained: null }),
 
-      // Authentication
+      // Authentication (Offline Mock validation)
       login: async (email, password) => {
         try {
           set({ isLoading: true });
-          const data = await apiCall('/auth/login', 'POST', { email, password });
+          const user = mockUsers.find(u => u.email === email);
+          if (!user) {
+            throw new Error('Invalid email or password.');
+          }
           set({
-            token: data.token,
-            currentUser: data.user,
-            role: data.user.role,
+            token: 'mock-jwt-token',
+            currentUser: user,
+            role: user.role,
             isLoading: false,
+            transactions: mockTransactions,
+            habits: mockHabits,
+            goals: mockGoals,
+            assets: mockAssets,
+            feedback: mockFeedback,
+            bills: [
+              { id: 'bill-1', name: 'Water & Electricity Utility', amount: 120, dueDate: '2026-07-15', category: 'Utilities', status: 'unpaid' },
+              { id: 'bill-2', name: 'High-speed Fiber Internet', amount: 65, dueDate: '2026-07-22', category: 'Utilities', status: 'unpaid' }
+            ],
+            netWorthHistory: mockNetWorthHistory,
+            budgetLimits: { Food: 500, Shopping: 800, Utilities: 300 }
           });
-          await get().loadData();
+          get().addToast(`Welcome back, ${user.name}!`, 'success');
           return { success: true };
         } catch (err) {
           set({ isLoading: false });
@@ -127,14 +128,39 @@ export const useStore = create(
       register: async (name, email, password) => {
         try {
           set({ isLoading: true });
-          const data = await apiCall('/auth/register', 'POST', { name, email, password });
-          set({
-            token: data.token,
-            currentUser: data.user,
-            role: data.user.role,
-            isLoading: false,
-          });
-          await get().loadData();
+          const newUser = {
+            id: `usr-${Date.now()}`,
+            name,
+            email,
+            password,
+            targetSavingsRate: 20,
+            role: 'viewer',
+            status: 'Active',
+            avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}`,
+            joinedDate: new Date().toISOString().slice(0, 10),
+            xp: 150,
+            badges: ['Streak Starter']
+          };
+          
+          set((s) => ({
+            currentUser: newUser,
+            role: 'viewer',
+            token: 'mock-jwt-token',
+            adminUsers: [...s.adminUsers, newUser],
+            transactions: mockTransactions,
+            habits: mockHabits,
+            goals: mockGoals,
+            assets: mockAssets,
+            feedback: mockFeedback,
+            bills: [
+              { id: 'bill-1', name: 'Water & Electricity Utility', amount: 120, dueDate: '2026-07-15', category: 'Utilities', status: 'unpaid' },
+              { id: 'bill-2', name: 'High-speed Fiber Internet', amount: 65, dueDate: '2026-07-22', category: 'Utilities', status: 'unpaid' }
+            ],
+            netWorthHistory: mockNetWorthHistory,
+            budgetLimits: { Food: 500, Shopping: 800, Utilities: 300 }
+          }));
+
+          get().addToast(`Account created successfully!`, 'success');
           return { success: true };
         } catch (err) {
           set({ isLoading: false });
@@ -148,394 +174,373 @@ export const useStore = create(
           currentUser: null,
           role: 'viewer',
           activePage: 'dashboard',
-          transactions: [],
-          habits: [],
-          goals: [],
-          assets: [],
-          feedback: [],
-          netWorthHistory: [],
-          budgetLimits: {},
-          adminUsers: [],
-          adminFeedback: [],
         });
+        get().addToast('Logged out successfully.', 'info');
       },
 
       deleteAccount: async () => {
-        try {
-          const token = get().token;
-          await apiCall('/auth/me', 'DELETE', null, token);
-          get().logout();
-          return { success: true };
-        } catch (err) {
-          return { success: false, error: err.message };
-        }
+        get().logout();
+        get().addToast('Account deleted successfully.', 'success');
+        return { success: true };
       },
 
       updateProfile: async (profileData) => {
-        try {
-          const token = get().token;
-          const updatedUser = await apiCall('/auth/profile', 'POST', profileData, token);
-          set({ currentUser: updatedUser });
-          return { success: true };
-        } catch (err) {
-          return { success: false, error: err.message };
-        }
+        set((s) => ({
+          currentUser: { ...s.currentUser, ...profileData }
+        }));
+        get().addToast('Profile updated successfully!', 'success');
+        return { success: true };
       },
 
       changePassword: async (currentPassword, newPassword) => {
-        try {
-          const token = get().token;
-          await apiCall('/auth/change-password', 'POST', { currentPassword, newPassword }, token);
-          return { success: true };
-        } catch (err) {
-          return { success: false, error: err.message };
-        }
+        get().addToast('Password updated successfully!', 'success');
+        return { success: true };
       },
 
       forgotPassword: async (email) => {
-        try {
-          await apiCall('/auth/forgot-password', 'POST', { email });
-          return { success: true };
-        } catch (err) {
-          return { success: false, error: err.message };
-        }
+        get().addToast('Password reset link sent (Mock)!', 'success');
+        return { success: true };
       },
 
       resetPassword: async (token, newPassword) => {
-        try {
-          await apiCall('/auth/reset-password', 'POST', { token, newPassword });
-          return { success: true };
-        } catch (err) {
-          return { success: false, error: err.message };
-        }
+        get().addToast('Password has been reset successfully!', 'success');
+        return { success: true };
       },
 
-      // Fetch all user specific details from backend
       loadData: async () => {
-        const token = get().token;
-        if (!token) return;
-
-        try {
-          set({ isLoading: true });
-
-          // Load core data sets concurrently
-          const [txData, habitData, goalData, assetData, nwHistory, fbData, limits, billData] = await Promise.all([
-            apiCall('/transactions?limit=100', 'GET', null, token),
-            apiCall('/habits', 'GET', null, token),
-            apiCall('/goals', 'GET', null, token),
-            apiCall('/wealth/assets', 'GET', null, token),
-            apiCall('/wealth/history', 'GET', null, token),
-            apiCall('/feedback', 'GET', null, token),
-            apiCall('/transactions/budget', 'GET', null, token),
-            apiCall('/bills', 'GET', null, token),
-          ]);
-
+        const s = get();
+        if (!s.transactions || s.transactions.length === 0) {
           set({
-            transactions: txData.transactions || [],
-            habits: habitData || [],
-            goals: goalData || [],
-            assets: assetData || [],
-            netWorthHistory: nwHistory || [],
-            feedback: fbData || [],
-            budgetLimits: limits || {},
-            bills: billData || [],
-            isLoading: false,
+            transactions: mockTransactions,
+            habits: mockHabits,
+            goals: mockGoals,
+            assets: mockAssets,
+            feedback: mockFeedback,
+            bills: [
+              { id: 'bill-1', name: 'Water & Electricity Utility', amount: 120, dueDate: '2026-07-15', category: 'Utilities', status: 'unpaid' },
+              { id: 'bill-2', name: 'High-speed Fiber Internet', amount: 65, dueDate: '2026-07-22', category: 'Utilities', status: 'unpaid' }
+            ],
+            netWorthHistory: mockNetWorthHistory,
+            budgetLimits: { Food: 500, Shopping: 800, Utilities: 300 }
           });
-
-          // Fetch Admin data sets if admin role
-          if (get().role === 'admin') {
-            const [adminUsersList, adminFbList] = await Promise.all([
-              apiCall('/feedback/admin/users', 'GET', null, token),
-              apiCall('/feedback/admin/all', 'GET', null, token),
-            ]);
-            set({
-              adminUsers: adminUsersList || [],
-              adminFeedback: adminFbList || [],
-            });
-          }
-        } catch (err) {
-          set({ isLoading: false });
-          console.error('Failed to load portfolio statistics:', err.message);
         }
       },
 
       // Transactions CRUD
       addTransaction: async (txData) => {
-        try {
-          const token = get().token;
-          const data = await apiCall('/transactions', 'POST', txData, token);
-          set((s) => ({
-            transactions: [data.transaction, ...s.transactions],
-            budgetAlert: data.alert || null,
-          }));
-          await get().loadData();
-          return { success: true };
-        } catch (err) {
-          return { success: false, error: err.message };
-        }
+        const newTx = {
+          ...txData,
+          id: `tx-${Date.now()}`,
+          userId: get().currentUser?.id || 'usr-1',
+        };
+
+        set((s) => {
+          const list = [newTx, ...s.transactions];
+          
+          // Verify category budget warning
+          const month = newTx.date.slice(0, 7);
+          const limit = s.budgetLimits[newTx.category] || 0;
+          if (newTx.type === 'expense' && limit > 0) {
+            const spent = list
+              .filter((t) => t.userId === newTx.userId && t.type === 'expense' && t.date.startsWith(month) && t.category === newTx.category)
+              .reduce((sum, t) => sum + t.amount, 0);
+            if (spent > limit) {
+              s.addToast(`Warning: Spent ${spent} in ${newTx.category}. Monthly limit of ${limit} exceeded!`, 'error');
+            }
+          }
+
+          return { transactions: list };
+        });
+
+        get().addToast('Transaction recorded.', 'success');
+        return { success: true };
       },
 
       updateTransaction: async (id, updatedData) => {
-        try {
-          const token = get().token;
-          const updated = await apiCall(`/transactions/${id}`, 'PUT', updatedData, token);
-          set((s) => ({
-            transactions: s.transactions.map((t) => (t._id === id ? updated : t)),
-          }));
-          await get().loadData();
-          return { success: true };
-        } catch (err) {
-          return { success: false, error: err.message };
-        }
+        set((s) => ({
+          transactions: s.transactions.map((t) => (t.id === id || t._id === id ? { ...t, ...updatedData } : t)),
+        }));
+        get().addToast('Transaction updated.', 'success');
       },
 
       deleteTransaction: async (id) => {
-        try {
-          const token = get().token;
-          await apiCall(`/transactions/${id}`, 'DELETE', null, token);
-          set((s) => ({
-            transactions: s.transactions.filter((t) => t._id !== id),
-          }));
-          await get().loadData();
-          return { success: true };
-        } catch (err) {
-          return { success: false, error: err.message };
-        }
+        set((s) => ({
+          transactions: s.transactions.filter((t) => t.id !== id && t._id !== id),
+        }));
+        get().addToast('Transaction deleted.', 'success');
       },
 
       setBudgetLimit: async (category, limit) => {
-        try {
-          const token = get().token;
-          const data = await apiCall('/transactions/budget', 'POST', { category, limit }, token);
-          set({ budgetLimits: data.budgetLimits });
-          return { success: true };
-        } catch (err) {
-          return { success: false, error: err.message };
-        }
+        set((s) => ({
+          budgetLimits: { ...s.budgetLimits, [category]: Number(limit) },
+        }));
+        get().addToast(`Budget limit set for ${category}.`, 'success');
       },
 
-      // Habits Actions
+      // Habits CRUD
       addHabit: async (name, frequency) => {
-        try {
-          const token = get().token;
-          const newHabit = await apiCall('/habits', 'POST', { name, frequency }, token);
-          set((s) => ({ habits: [...s.habits, newHabit] }));
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
+        const newHabit = {
+          id: `hab-${Date.now()}`,
+          userId: get().currentUser?.id || 'usr-1',
+          name,
+          frequency,
+          streak: 0,
+          completionHistory: [],
+        };
+        set((s) => ({ habits: [...s.habits, newHabit] }));
+        get().addToast('Habit added to your tracker!', 'success');
       },
 
       toggleHabitCompletion: async (id, dateStr) => {
-        try {
-          const token = get().token;
-          const data = await apiCall(`/habits/toggle/${id}`, 'POST', { dateStr }, token);
-          
-          set((s) => {
-            const updatedHabits = s.habits.map((h) => (h._id === id ? data.habit : h));
-            const updatedUser = s.currentUser
-              ? { ...s.currentUser, xp: data.xp, badges: data.badges }
-              : null;
-            return {
-              habits: updatedHabits,
-              currentUser: updatedUser,
-              badgeUnlocked: data.badgeUnlocked || null,
-              xpGained: data.xpGained || null,
-            };
+        set((s) => {
+          let earnedXp = 0;
+          let badgeUnlockedMessage = '';
+
+          const habits = s.habits.map((h) => {
+            if (h.id !== id && h._id !== id) return h;
+
+            const history = h.completionHistory.includes(dateStr)
+              ? h.completionHistory.filter((d) => d !== dateStr)
+              : [...h.completionHistory, dateStr];
+
+            // Streak logic
+            const sorted = [...history].sort((a, b) => new Date(b) - new Date(a));
+            let streak = 0;
+            if (sorted.length > 0) {
+              const today = new Date().toISOString().slice(0, 10);
+              const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+              const latest = sorted[0];
+              if (latest === today || latest === yesterday) {
+                streak = 1;
+                for (let i = 0; i < sorted.length - 1; i++) {
+                  const curr = new Date(sorted[i]);
+                  const next = new Date(sorted[i + 1]);
+                  const diff = (curr - next) / (1000 * 60 * 60 * 24);
+                  if (diff === 1) streak++;
+                  else if (diff > 1) break;
+                }
+              }
+            }
+
+            // XP and Badge alerts triggers on completion additions
+            if (history.includes(dateStr) && !h.completionHistory.includes(dateStr)) {
+              earnedXp += 10;
+              if (streak === 3 && !s.currentUser?.badges?.includes('Streak Starter')) {
+                badgeUnlockedMessage = 'Streak Starter 🚀';
+              } else if (streak === 7 && !s.currentUser?.badges?.includes('Consistency Champion')) {
+                badgeUnlockedMessage = 'Consistency Champion 🏆';
+              }
+            }
+
+            return { ...h, completionHistory: history, streak };
           });
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
+
+          // Award XP and badges locally
+          let updatedUser = s.currentUser;
+          if (earnedXp > 0 && updatedUser) {
+            const nextBadges = [...(updatedUser.badges || [])];
+            let badgeXp = 0;
+            if (badgeUnlockedMessage) {
+              nextBadges.push(badgeUnlockedMessage.split(' ')[0] + ' ' + badgeUnlockedMessage.split(' ')[1]);
+              badgeXp = 50;
+              s.addToast(`Badge Unlocked: ${badgeUnlockedMessage}!`, 'success');
+            }
+            updatedUser = {
+              ...updatedUser,
+              xp: (updatedUser.xp || 0) + earnedXp + badgeXp,
+              badges: nextBadges
+            };
+            s.addToast(`+${earnedXp} XP check-in reward!`, 'success');
+          }
+
+          return { habits, currentUser: updatedUser };
+        });
       },
 
       deleteHabit: async (id) => {
-        try {
-          const token = get().token;
-          await apiCall(`/habits/${id}`, 'DELETE', null, token);
-          set((s) => ({ habits: s.habits.filter((h) => h._id !== id) }));
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
+        set((s) => ({ habits: s.habits.filter((h) => h.id !== id && h._id !== id) }));
+        get().addToast('Habit deleted.', 'success');
       },
 
-      // Goals Actions
-      addGoal: async (name, targetAmount, targetDate, category) => {
-        try {
-          const token = get().token;
-          const newGoal = await apiCall('/goals', 'POST', { name, targetAmount, targetDate, category }, token);
-          set((s) => ({ goals: [...s.goals, newGoal] }));
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
+      // Savings Goals
+      addGoal: async (goalData) => {
+        const newGoal = {
+          ...goalData,
+          id: `goal-${Date.now()}`,
+          userId: get().currentUser?.id || 'usr-1',
+          currentAmount: 0,
+          contributions: [],
+        };
+        set((s) => ({ goals: [...s.goals, newGoal] }));
+        get().addToast('Goal tracker initialized!', 'success');
       },
 
-      addContribution: async (goalId, amount, note) => {
-        try {
-          const token = get().token;
-          const data = await apiCall(`/goals/contribute/${goalId}`, 'POST', { amount, note }, token);
-          set((s) => ({
-            goals: s.goals.map((g) => (g._id === goalId ? data.goal : g)),
-            transactions: [data.transaction, ...s.transactions],
-          }));
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
+      addGoalContribution: async (id, amount, note) => {
+        const amountNum = Number(amount);
+        set((s) => {
+          const list = s.goals.map((g) => {
+            if (g.id !== id && g._id !== id) return g;
+            const newContribution = {
+              id: `c-${Date.now()}`,
+              amount: amountNum,
+              date: new Date().toISOString().slice(0, 10),
+              note,
+            };
+            return {
+              ...g,
+              currentAmount: g.currentAmount + amountNum,
+              contributions: [...g.contributions, newContribution],
+            };
+          });
+
+          // Write transactions ledger matching record
+          const autoTx = {
+            id: `tx-${Date.now()}`,
+            userId: get().currentUser?.id || 'usr-1',
+            date: new Date().toISOString().slice(0, 10),
+            amount: amountNum,
+            category: 'Investment',
+            type: 'expense',
+            note: `Contribution: ${note}`,
+          };
+
+          return { goals: list, transactions: [autoTx, ...s.transactions] };
+        });
+
+        get().addToast('Savings contribution credited.', 'success');
       },
 
       deleteGoal: async (id) => {
-        try {
-          const token = get().token;
-          await apiCall(`/goals/${id}`, 'DELETE', null, token);
-          set((s) => ({ goals: s.goals.filter((g) => g._id !== id) }));
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
+        set((s) => ({ goals: s.goals.filter((g) => g.id !== id && g._id !== id) }));
+        get().addToast('Savings goal deleted.', 'success');
       },
 
-      // Wealth Assets Actions
-      addAsset: async (name, category, amount) => {
-        try {
-          const token = get().token;
-          const newAsset = await apiCall('/wealth/assets', 'POST', { name, category, amount }, token);
-          set((s) => ({ assets: [...s.assets, newAsset] }));
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
+      // Wealth Assets & Liabilities CRUD
+      addAsset: async (assetData) => {
+        const newAsset = {
+          ...assetData,
+          id: `ast-${Date.now()}`,
+          userId: get().currentUser?.id || 'usr-1',
+          lastUpdated: new Date().toISOString().slice(0, 10),
+        };
+        set((s) => ({ assets: [...s.assets, newAsset] }));
+        get().addToast('Asset recorded in portfolio registry.', 'success');
       },
 
-      updateAsset: async (id, amount) => {
-        try {
-          const token = get().token;
-          const updated = await apiCall(`/wealth/assets/${id}`, 'PUT', { amount }, token);
-          set((s) => ({
-            assets: s.assets.map((a) => (a._id === id ? updated : a)),
-          }));
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
+      updateAssetBalance: async (id, amount) => {
+        set((s) => ({
+          assets: s.assets.map((a) => (a.id === id || a._id === id ? { ...a, amount: Number(amount), lastUpdated: new Date().toISOString().slice(0, 10) } : a)),
+        }));
+        get().addToast('Holding balance updated.', 'success');
       },
 
       deleteAsset: async (id) => {
-        try {
-          const token = get().token;
-          await apiCall(`/wealth/assets/${id}`, 'DELETE', null, token);
-          set((s) => ({ assets: s.assets.filter((a) => a._id !== id) }));
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
+        set((s) => ({ assets: s.assets.filter((a) => a.id !== id && a._id !== id) }));
+        get().addToast('Holding registry removed.', 'success');
       },
 
-      // Support Feedback Actions
-      submitFeedback: async (type, message) => {
-        try {
-          const token = get().token;
-          const newFb = await apiCall('/feedback', 'POST', { type, message }, token);
-          set((s) => ({ feedback: [newFb, ...s.feedback] }));
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
-      },
-
-      resolveFeedback: async (id, reply) => {
-        try {
-          const token = get().token;
-          const updated = await apiCall(`/feedback/admin/resolve/${id}`, 'POST', { reply }, token);
-          set((s) => ({
-            adminFeedback: s.adminFeedback.map((f) => (f._id === id ? updated : f)),
-          }));
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
-      },
-
-      toggleUserStatus: async (userId) => {
-        try {
-          const token = get().token;
-          const updated = await apiCall(`/feedback/admin/users/${userId}/status`, 'POST', null, token);
-          set((s) => ({
-            adminUsers: s.adminUsers.map((u) => (u._id === userId ? { ...u, status: updated.status } : u)),
-          }));
-          
-          // Log out current user if suspended
-          if (userId === get().currentUser?.id && updated.status === 'Suspended') {
-            get().logout();
-          } else {
-            await get().loadData();
-          }
-        } catch (err) {
-          console.error(err.message);
-        }
-      },
-
-      changeUserRole: async (userId, newRole) => {
-        try {
-          const token = get().token;
-          const updated = await apiCall(`/feedback/admin/users/${userId}/role`, 'POST', { role: newRole }, token);
-          set((s) => {
-            const updatedUsers = s.adminUsers.map((u) => (u._id === userId ? { ...u, role: updated.role } : u));
-            const updatedCurrentUser = s.currentUser?.id === userId ? { ...s.currentUser, role: updated.role } : s.currentUser;
-            return {
-              adminUsers: updatedUsers,
-              currentUser: updatedCurrentUser,
-              role: updatedCurrentUser?.role || s.role,
-            };
-          });
-          await get().loadData();
-        } catch (err) {
-          console.error(err.message);
-        }
-      },
-
+      // Bills CRUD
       addBill: async (billData) => {
-        try {
-          const token = get().token;
-          const newBill = await apiCall('/bills', 'POST', billData, token);
-          set((s) => ({ bills: [...s.bills, newBill] }));
-          get().addToast('Bill reminder created successfully!', 'success');
-          return { success: true };
-        } catch (err) {
-          get().addToast(err.message, 'error');
-          return { success: false, error: err.message };
-        }
+        const newBill = {
+          ...billData,
+          id: `bill-${Date.now()}`,
+          userId: get().currentUser?.id || 'usr-1',
+          status: 'unpaid',
+        };
+        set((s) => ({ bills: [...s.bills, newBill] }));
+        get().addToast('Bill reminder created successfully!', 'success');
+        return { success: true };
       },
 
       payBill: async (id) => {
-        try {
-          const token = get().token;
-          const res = await apiCall(`/bills/pay/${id}`, 'POST', null, token);
-          set((s) => ({
-            bills: s.bills.map((b) => (b._id === id ? res.bill : b)),
-            transactions: [res.transaction, ...s.transactions]
-          }));
-          get().addToast(`Bill marked as paid! Expense added to ledger.`, 'success');
-          return { success: true };
-        } catch (err) {
-          get().addToast(err.message, 'error');
-          return { success: false, error: err.message };
-        }
+        set((s) => {
+          let paidBill = null;
+          const list = s.bills.map((b) => {
+            if (b.id !== id && b._id !== id) return b;
+            paidBill = { ...b, status: 'paid' };
+            return paidBill;
+          });
+
+          // Auto expense ledger transaction
+          const autoTx = {
+            id: `tx-${Date.now()}`,
+            userId: get().currentUser?.id || 'usr-1',
+            date: new Date().toISOString().slice(0, 10),
+            amount: paidBill.amount,
+            category: paidBill.category || 'Utilities',
+            type: 'expense',
+            note: `Bill Paid: ${paidBill.name}`,
+          };
+
+          return { bills: list, transactions: [autoTx, ...s.transactions] };
+        });
+        get().addToast('Bill marked as paid! Expense added to ledger.', 'success');
+        return { success: true };
       },
 
       deleteBill: async (id) => {
-        try {
-          const token = get().token;
-          await apiCall(`/bills/${id}`, 'DELETE', null, token);
-          set((s) => ({ bills: s.bills.filter((b) => b._id !== id) }));
-          get().addToast('Bill reminder deleted.', 'success');
-          return { success: true };
-        } catch (err) {
-          get().addToast(err.message, 'error');
-          return { success: false, error: err.message };
-        }
+        set((s) => ({ bills: s.bills.filter((b) => b.id !== id && b._id !== id) }));
+        get().addToast('Bill reminder deleted.', 'success');
+        return { success: true };
+      },
+
+      // Support Feedback submitting
+      submitFeedback: async (type, message) => {
+        const newTicket = {
+          id: `fb-${Date.now()}`,
+          userId: get().currentUser?.id || 'usr-1',
+          userName: get().currentUser?.name || 'Alex Rivera',
+          type,
+          message,
+          date: new Date().toISOString().slice(0, 10),
+          status: 'pending',
+          reply: '',
+        };
+        set((s) => ({
+          feedback: [newTicket, ...s.feedback],
+          adminFeedback: [newTicket, ...s.adminFeedback],
+        }));
+        get().addToast('Feedback ticket submitted!', 'success');
+      },
+
+      // Admin Actions
+      resolveFeedbackTicket: async (ticketId, reply) => {
+        set((s) => ({
+          feedback: s.feedback.map((f) => (f.id === ticketId || f._id === ticketId ? { ...f, status: 'resolved', reply } : f)),
+          adminFeedback: s.adminFeedback.map((f) => (f.id === ticketId || f._id === ticketId ? { ...f, status: 'resolved', reply } : f)),
+        }));
+        get().addToast('Reply sent. Ticket status updated to resolved.', 'success');
+      },
+
+      toggleUserSuspension: async (userId) => {
+        set((s) => {
+          const list = s.adminUsers.map((u) => {
+            if (u.id !== userId && u._id !== userId) return u;
+            const nextStatus = u.status === 'Suspended' ? 'Active' : 'Suspended';
+            return { ...u, status: nextStatus };
+          });
+          return { adminUsers: list };
+        });
+        get().addToast('User status modified.', 'success');
+      },
+
+      changeUserRole: async (userId, newRole) => {
+        set((s) => {
+          const list = s.adminUsers.map((u) => {
+            if (u.id !== userId && u._id !== userId) return u;
+            return { ...u, role: newRole };
+          });
+          const updatedCurrentUser = s.currentUser?.id === userId || s.currentUser?._id === userId 
+            ? { ...s.currentUser, role: newRole } 
+            : s.currentUser;
+
+          return {
+            adminUsers: list,
+            currentUser: updatedCurrentUser,
+            role: updatedCurrentUser?.role || s.role,
+          };
+        });
+        get().addToast('User role updated.', 'success');
       },
     }),
     {
@@ -552,13 +557,20 @@ export const useStore = create(
         if (state?.darkMode) {
           document.documentElement.classList.add('dark');
         }
-        // Load server data upon local rehydration
-        if (state?.token) {
-          setTimeout(() => state.loadData(), 100);
+        // Force-refresh mock data if rehydrated with empty values in mock-mode
+        if (state && (!state.transactions || state.transactions.length === 0)) {
+          state.transactions = mockTransactions;
+          state.habits = mockHabits;
+          state.goals = mockGoals;
+          state.assets = mockAssets;
+          state.feedback = mockFeedback;
+          state.netWorthHistory = mockNetWorthHistory;
+          state.bills = [
+            { id: 'bill-1', name: 'Water & Electricity Utility', amount: 120, dueDate: '2026-07-15', category: 'Utilities', status: 'unpaid' },
+            { id: 'bill-2', name: 'High-speed Fiber Internet', amount: 65, dueDate: '2026-07-22', category: 'Utilities', status: 'unpaid' }
+          ];
         }
       },
     }
   )
 );
-
-

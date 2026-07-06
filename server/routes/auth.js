@@ -41,26 +41,113 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretspecialjwtsecretkey12345!';
 
 // Seeding default templates for new users
-const seedNewUserData = async (userId) => {
+export const seedNewUserData = async (userId) => {
   try {
-    // 1. Add Default Habits
-    await Habit.insertMany([
-      { userId, name: 'Save Daily ($10)', frequency: 'daily', streak: 0, completionHistory: [] },
-      { userId, name: 'Log Daily Expenses', frequency: 'daily', streak: 0, completionHistory: [] },
-      { userId, name: 'Invest Monthly', frequency: 'monthly', streak: 0, completionHistory: [] }
-    ]);
+    const today = new Date();
+    const getPastDateStr = (daysAgo) => {
+      const d = new Date();
+      d.setDate(today.getDate() - daysAgo);
+      return d.toISOString().slice(0, 10);
+    };
 
-    // 2. Add Default Goals
-    await Goal.insertMany([
-      { userId, name: 'Emergency Fund', targetAmount: 10000, currentAmount: 0, targetDate: '2026-12-31', category: 'Emergency', contributions: [] },
-      { userId, name: 'Vacation Fund', targetAmount: 5000, currentAmount: 0, targetDate: '2027-06-30', category: 'Travel', contributions: [] }
-    ]);
+    // 1. Add Default Habits with starter streaks
+    const habit1 = new Habit({
+      userId,
+      name: 'Save Daily ($10)',
+      frequency: 'daily',
+      streak: 3,
+      lastCompleted: getPastDateStr(1),
+      completionHistory: [getPastDateStr(3), getPastDateStr(2), getPastDateStr(1)]
+    });
+    const habit2 = new Habit({
+      userId,
+      name: 'Log Daily Expenses',
+      frequency: 'daily',
+      streak: 4,
+      lastCompleted: getPastDateStr(1),
+      completionHistory: [getPastDateStr(4), getPastDateStr(3), getPastDateStr(2), getPastDateStr(1)]
+    });
+    const habit3 = new Habit({
+      userId,
+      name: 'Invest Monthly',
+      frequency: 'monthly',
+      streak: 1,
+      lastCompleted: getPastDateStr(15),
+      completionHistory: [getPastDateStr(15)]
+    });
+    await Promise.all([habit1.save(), habit2.save(), habit3.save()]);
 
-    // 3. Add Default Assets
+    // 2. Add Default Goals with contributions
+    const goal1 = new Goal({
+      userId,
+      name: 'Emergency Fund',
+      targetAmount: 10000,
+      currentAmount: 4000,
+      targetDate: getPastDateStr(-180), // 6 months in future
+      category: 'Emergency',
+      contributions: [
+        { date: getPastDateStr(30), amount: 2000, note: 'Initial deposit' },
+        { date: getPastDateStr(15), amount: 2000, note: 'Monthly savings match' }
+      ]
+    });
+    const goal2 = new Goal({
+      userId,
+      name: 'Vacation Fund',
+      targetAmount: 5000,
+      currentAmount: 1500,
+      targetDate: getPastDateStr(-120), // 4 months in future
+      category: 'Travel',
+      contributions: [
+        { date: getPastDateStr(25), amount: 1000, note: 'Onboarding deposit' },
+        { date: getPastDateStr(5), amount: 500, note: 'Birthday gift' }
+      ]
+    });
+    await Promise.all([goal1.save(), goal2.save()]);
+
+    // 3. Add Default Assets & Liabilities
     await Asset.insertMany([
-      { userId, name: 'Savings Account', category: 'Cash', amount: 500 },
-      { userId, name: 'Investment Brokerage', category: 'Investment', amount: 0 }
+      { userId, name: 'Chase Checking Account', category: 'Cash', amount: 3500 },
+      { userId, name: 'Fidelity Stock Brokerage', category: 'Investment', amount: 4800 },
+      { userId, name: 'Physical Gold Bars', category: 'Gold', amount: 2500 },
+      { userId, name: 'Capital One Credit Card', category: 'Liabilities', amount: -600 }
     ]);
+
+    // 4. Add Default Bills & Reminders
+    await Bill.insertMany([
+      { userId, name: 'Water & Electricity Utility', amount: 120, dueDate: getPastDateStr(-5), category: 'Utilities', status: 'unpaid' },
+      { userId, name: 'High-speed Fiber Internet', amount: 65, dueDate: getPastDateStr(-12), category: 'Utilities', status: 'unpaid' },
+      { userId, name: 'Adobe Creative Suite', amount: 55, dueDate: getPastDateStr(-20), category: 'Entertainment', status: 'paid' }
+    ]);
+
+    // 5. Add dynamic Transactions ledger history spanning 3 months for charts
+    await Transaction.insertMany([
+      // Month 0 (Current Month)
+      { userId, date: getPastDateStr(2), amount: 4500, category: 'Salary', type: 'income', note: 'Monthly Salary Paycheck' },
+      { userId, date: getPastDateStr(1), amount: 1200, category: 'Rent', type: 'expense', note: 'Apartment Rental Lease' },
+      { userId, date: getPastDateStr(3), amount: 150, category: 'Food', type: 'expense', note: 'Weekly WholeFoods Groceries' },
+      { userId, date: getPastDateStr(4), amount: 300, category: 'Freelance', type: 'income', note: 'Vite React Consultation Gig' },
+      { userId, date: getPastDateStr(5), amount: 500, category: 'Investment', type: 'expense', note: 'Fidelity Mutual Fund Match' },
+      
+      // Month 1 (Last Month)
+      { userId, date: getPastDateStr(32), amount: 4500, category: 'Salary', type: 'income', note: 'Monthly Salary Paycheck' },
+      { userId, date: getPastDateStr(31), amount: 1200, category: 'Rent', type: 'expense', note: 'Apartment Rental Lease' },
+      { userId, date: getPastDateStr(35), amount: 180, category: 'Food', type: 'expense', note: 'Sushi Dinner & Groceries' },
+      { userId, date: getPastDateStr(45), amount: 200, category: 'Utilities', type: 'expense', note: 'Utility Bill Power/Grid' },
+      
+      // Month 2 (2 Months Ago)
+      { userId, date: getPastDateStr(62), amount: 4500, category: 'Salary', type: 'income', note: 'Monthly Salary Paycheck' },
+      { userId, date: getPastDateStr(61), amount: 1200, category: 'Rent', type: 'expense', note: 'Apartment Rental Lease' },
+      { userId, date: getPastDateStr(65), amount: 110, category: 'Transport', type: 'expense', note: 'Gasoline and Subway Card' },
+      { userId, date: getPastDateStr(70), amount: 150, category: 'Entertainment', type: 'expense', note: 'Concert ticket purchase' }
+    ]);
+
+    // Update user XP & award starting badge
+    const user = await User.findById(userId);
+    if (user) {
+      user.xp = 150; // starting XP level
+      user.badges = ['Streak Starter', 'Consistency Champion'];
+      await user.save();
+    }
   } catch (err) {
     console.error('Failed to seed default onboarding data for user:', userId, err.message);
   }

@@ -135,11 +135,59 @@ const processRecurringTransactions = async () => {
   }
 };
 
+// Database seeder for demo accounts
+import bcrypt from 'bcryptjs';
+import { User, Habit, Goal, Asset, Bill } from './models/Schemas.js';
+import { seedNewUserData } from './routes/auth.js';
+
+const seedDemoAccounts = async () => {
+  try {
+    const users = [
+      { name: 'Alex Rivera', email: 'alex@example.com', password: 'password123', role: 'viewer', avatarSeed: 'Alex' },
+      { name: 'Sarah Chen', email: 'admin@example.com', password: 'adminpassword', role: 'admin', avatarSeed: 'Sarah' }
+    ];
+
+    for (const u of users) {
+      let user = await User.findOne({ email: u.email });
+      if (!user) {
+        user = new User({
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(u.avatarSeed)}`,
+          verified: true
+        });
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(u.password, salt);
+        await user.save();
+        console.log(`[SEEDER] Created demo user account: ${u.email}`);
+        await seedNewUserData(user._id);
+      } else {
+        const hasTxs = await Transaction.exists({ userId: user._id });
+        if (!hasTxs) {
+          console.log(`[SEEDER] Demo user ${u.email} has no transactions. Re-seeding rich mock data...`);
+          await Promise.all([
+            Transaction.deleteMany({ userId: user._id }),
+            Habit.deleteMany({ userId: user._id }),
+            Goal.deleteMany({ userId: user._id }),
+            Asset.deleteMany({ userId: user._id }),
+            Bill.deleteMany({ userId: user._id })
+          ]);
+          await seedNewUserData(user._id);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to run demo accounts seeder:', err.message);
+  }
+};
+
 mongoose
   .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/finsight')
   .then(() => {
     console.log('Connected to MongoDB database successfully');
     processRecurringTransactions();
+    seedDemoAccounts();
   })
   .catch((err) => {
     console.error('MongoDB database connection error:', err.message);
