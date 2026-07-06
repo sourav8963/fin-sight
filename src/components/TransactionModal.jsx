@@ -21,7 +21,7 @@ export default function TransactionModal() {
 
   if (!modal) return null;
 
-  const formKey = `${modal.mode}-${modal.tx?.id ?? 'new'}`;
+  const formKey = `${modal.mode}-${(modal.tx?._id || modal.tx?.id) ?? 'new'}`;
 
   return (
     <TransactionModalContent
@@ -123,12 +123,12 @@ function TransactionModalContent({ modal, closeModal, addTransaction, updateTran
       ...form,
       category: finalCategory,
       amount: Number(form.amount) / rate,
-      id: isEdit ? form.id : generateId(),
-      userId: currentUser?.id || 'usr-1',
+      _id: isEdit ? (form._id || form.id) : undefined,
+      userId: currentUser?.id || currentUser?._id || 'usr-1',
     };
     delete tx.customCategory;
     if (isEdit) {
-      updateTransaction(tx.id, tx);
+      updateTransaction(tx._id || tx.id, tx);
     } else {
       addTransaction(tx);
     }

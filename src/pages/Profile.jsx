@@ -5,6 +5,7 @@ export default function Profile() {
   const currentUser = useStore((s) => s.currentUser);
   const updateProfile = useStore((s) => s.updateProfile);
   const changePassword = useStore((s) => s.changePassword);
+  const deleteAccount = useStore((s) => s.deleteAccount);
   const submitFeedback = useStore((s) => s.submitFeedback);
   const feedback = useStore((s) => s.feedback);
 
@@ -19,6 +20,10 @@ export default function Profile() {
   const [newPassword, setNewPassword] = useState('');
   const [passSuccess, setPassSuccess] = useState('');
   const [passError, setPassError] = useState('');
+
+  // Danger zone deletion state
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   // Notification Preferences mockup state
   const [emailBudget, setEmailBudget] = useState(true);
@@ -67,6 +72,14 @@ export default function Profile() {
       setTimeout(() => setPassSuccess(''), 3000);
     } else {
       setPassError(res.error || 'Password update failed.');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteError('');
+    const res = await deleteAccount();
+    if (!res.success) {
+      setDeleteError(res.error || 'Failed to delete account.');
     }
   };
 
@@ -356,6 +369,43 @@ export default function Profile() {
               </div>
             </div>
           )}
+
+          {/* Account Deletion (Danger Zone) */}
+          <div className="bg-surface border border-expense/30 rounded-2xl p-6">
+            <h2 className="text-sm font-semibold text-expense mb-1">Danger Zone</h2>
+            <p className="text-xs text-muted mb-4">Deleting your account is permanent. All your transactions, habits, savings goals, and investment registries will be deleted forever.</p>
+            
+            {deleteError && (
+              <div className="mb-4 p-3 bg-expense/10 border border-expense/30 text-expense text-xs rounded-lg font-medium">
+                ⚠️ {deleteError}
+              </div>
+            )}
+            
+            {!confirmDelete ? (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="px-4 py-2 bg-expense text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-all"
+              >
+                Delete Account
+              </button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs text-expense font-bold w-full mb-1">Are you absolutely sure? This cannot be undone.</span>
+                <button
+                  onClick={handleDeleteAccount}
+                  className="px-3 py-1.5 bg-expense text-white text-xs font-semibold rounded-lg hover:opacity-90"
+                >
+                  Yes, Delete Forever
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="px-3 py-1.5 border border-theme text-xs font-semibold rounded-lg text-theme hover:bg-surface-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

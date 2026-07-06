@@ -232,14 +232,14 @@ export default function Transactions() {
             <div>
               {paginatedData.map((tx, i) => (
                 <DesktopRow
-                  key={tx.id}
+                  key={tx._id || tx.id}
                   tx={tx}
                   role={role}
                   even={i % 2 === 0}
                   currency={currency}
                   onEdit={() => openModal('edit', tx)}
-                  onDelete={() => handleDelete(tx.id)}
-                  confirmDelete={deleteConfirm === tx.id}
+                  onDelete={() => handleDelete(tx._id || tx.id)}
+                  confirmDelete={deleteConfirm === (tx._id || tx.id)}
                 />
               ))}
             </div>
@@ -249,13 +249,13 @@ export default function Transactions() {
           <div className="sm:hidden space-y-2">
             {paginatedData.map((tx) => (
               <MobileCard
-                key={tx.id}
+                key={tx._id || tx.id}
                 tx={tx}
                 role={role}
                 currency={currency}
                 onEdit={() => openModal('edit', tx)}
-                onDelete={() => handleDelete(tx.id)}
-                confirmDelete={deleteConfirm === tx.id}
+                onDelete={() => handleDelete(tx._id || tx.id)}
+                confirmDelete={deleteConfirm === (tx._id || tx.id)}
               />
             ))}
           </div>

@@ -38,6 +38,16 @@ export const useStore = create(
       activePage: 'dashboard',
       isLoading: false,
 
+      // Toasts state
+      toasts: [],
+      addToast: (message, type = 'info') => {
+        const id = Date.now();
+        set((s) => ({ toasts: [...s.toasts, { id, message, type }] }));
+        setTimeout(() => {
+          set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+        }, 3000);
+      },
+
       // Data Lists
       transactions: [],
       habits: [],
@@ -147,6 +157,17 @@ export const useStore = create(
           adminUsers: [],
           adminFeedback: [],
         });
+      },
+
+      deleteAccount: async () => {
+        try {
+          const token = get().token;
+          await apiCall('/auth/me', 'DELETE', null, token);
+          get().logout();
+          return { success: true };
+        } catch (err) {
+          return { success: false, error: err.message };
+        }
       },
 
       updateProfile: async (profileData) => {

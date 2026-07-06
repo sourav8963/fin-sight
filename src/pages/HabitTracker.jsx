@@ -358,6 +358,62 @@ export default function HabitTracker() {
             </div>
           </div>
 
+          {/* Financial Challenges */}
+          <div className="bg-surface border border-theme rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-theme mb-1">Financial Challenges</h2>
+            <p className="text-xs text-muted mb-4">Complete ledger-verified challenges for bonus rewards</p>
+            
+            <div className="space-y-3">
+              {/* Challenge 1: No Spend Day */}
+              <div className="p-3 border border-theme bg-surface-2 rounded-xl text-xs space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-theme">🚫 No-Spend Day</span>
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-muted">Active</span>
+                </div>
+                <p className="text-[11px] text-muted">Log 0 expense transactions today. Checked dynamically from your ledger.</p>
+                <button
+                  onClick={() => {
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    const txs = useStore.getState().transactions;
+                    const spentToday = txs.some(t => t.type === 'expense' && t.date === todayStr);
+                    if (spentToday) {
+                      alert("Validation failed: You have recorded expenses today. Try again on a no-spend day!");
+                    } else {
+                      alert("Challenge Successful! You spent $0 today. +100 Mock XP points awarded!");
+                    }
+                  }}
+                  className="w-full py-1 rounded text-[10px] font-semibold border border-theme hover:bg-surface transition-colors"
+                >
+                  Verify Challenge
+                </button>
+              </div>
+
+              {/* Challenge 2: Save ₹100 Daily */}
+              <div className="p-3 border border-theme bg-surface-2 rounded-xl text-xs space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-theme">💵 Save ₹100 Daily</span>
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-muted">Active</span>
+                </div>
+                <p className="text-[11px] text-muted">Contribute at least 100 units to any savings goal or investment asset today.</p>
+                <button
+                  onClick={() => {
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    const txs = useStore.getState().transactions;
+                    const saved100 = txs.some(t => t.type === 'expense' && t.date === todayStr && t.amount >= 100 && (t.note.includes('Contribution') || t.category === 'Investment'));
+                    if (saved100) {
+                      alert("Challenge Successful! You saved >= 100 units today. +100 Mock XP points awarded!");
+                    } else {
+                      alert("Validation failed: No savings goal contributions or investment ledger entries >= 100 recorded today.");
+                    }
+                  }}
+                  className="w-full py-1 rounded text-[10px] font-semibold border border-theme hover:bg-surface transition-colors"
+                >
+                  Verify Challenge
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Weekly Habit performance chart */}
           {userHabits.length > 0 && (
             <div className="bg-surface border border-theme rounded-xl p-5">

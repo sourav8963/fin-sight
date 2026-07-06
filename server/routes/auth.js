@@ -266,4 +266,25 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// @route   DELETE /api/auth/me
+// @desc    Delete user account and all associated data
+router.delete('/me', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    await Promise.all([
+      Transaction.deleteMany({ userId }),
+      Habit.deleteMany({ userId }),
+      Goal.deleteMany({ userId }),
+      Asset.deleteMany({ userId }),
+      User.findByIdAndDelete(userId)
+    ]);
+
+    res.json({ success: true, message: 'Account and all associated data deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server account deletion error.', details: err.message });
+  }
+});
+
 export default router;
+
